@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase.js';
+import getSupabase from '../lib/supabase.js';
 import { complete as claudeComplete } from './providers/claude.js';
 import { complete as openaiComplete } from './providers/openai.js';
 import { complete as geminiComplete } from './providers/gemini.js';
@@ -20,6 +20,7 @@ const providers = {
 export async function callLLM(systemPrompt, history, userContent, cfg) {
   // Resolve config from DB when not provided
   if (!cfg) {
+    const supabase = getSupabase();
     const { data } = await supabase
       .from('cfg_llm_config')
       .select('*')

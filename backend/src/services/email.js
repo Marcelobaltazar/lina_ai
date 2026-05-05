@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Resend } from 'resend';
-import supabase from '../lib/supabase.js';
+import getSupabase from '../lib/supabase.js';
 
 const getResend = (() => {
   let _client = null;
@@ -119,7 +119,7 @@ export async function sendWeeklyReport(familyEmail, familyName, elderName, stats
 export async function generateFamilyToken(relativeId) {
   const token = randomUUID();
 
-  const { data: relative, error } = await supabase.get()
+  const { data: relative, error } = await getSupabase()
     .from('fam_relatives')
     .update({ access_token: token })
     .eq('id', relativeId)

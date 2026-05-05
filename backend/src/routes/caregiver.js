@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
-import { supabase } from '../lib/supabase.js';
+import getSupabase from '../lib/supabase.js';
 
 const router = Router();
 
 // ── Auth middleware ────────────────────────────────────────────────────────────
 async function requireToken(req, res, next) {
+  const supabase = getSupabase();
   const { token } = req.params;
   try {
     const { data: relative } = await supabase
@@ -27,6 +28,7 @@ async function requireToken(req, res, next) {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 async function getWeekStats(elderId) {
+  const supabase = getSupabase();
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [msgsRes, medLogsRes, alertsRes] = await Promise.all([
@@ -70,6 +72,7 @@ async function getWeekStats(elderId) {
 // ── GET /caregiver/:token ──────────────────────────────────────────────────────
 router.get('/:token', requireToken, async (req, res) => {
   try {
+    const supabase = getSupabase();
     const elderId = req.elder.id;
 
     const [medsRes, alertsRes, weekStats] = await Promise.all([
@@ -108,6 +111,7 @@ router.get('/:token', requireToken, async (req, res) => {
 // ── GET /caregiver/:token/medications ─────────────────────────────────────────
 router.get('/:token/medications', requireToken, async (req, res) => {
   try {
+    const supabase = getSupabase();
     const { data } = await supabase
       .from('med_medications')
       .select('*')
@@ -124,6 +128,7 @@ router.get('/:token/medications', requireToken, async (req, res) => {
 // ── POST /caregiver/:token/medications ────────────────────────────────────────
 router.post('/:token/medications', requireToken, async (req, res) => {
   try {
+    const supabase = getSupabase();
     const { name, ...rest } = req.body;
     if (!name) return res.status(400).json({ error: 'Campo "name" é obrigatório' });
 
@@ -144,6 +149,7 @@ router.post('/:token/medications', requireToken, async (req, res) => {
 // ── PUT /caregiver/:token/medications/:medicationId ───────────────────────────
 router.put('/:token/medications/:medicationId', requireToken, async (req, res) => {
   try {
+    const supabase = getSupabase();
     const { medicationId } = req.params;
 
     const { data: existing } = await supabase
@@ -173,6 +179,7 @@ router.put('/:token/medications/:medicationId', requireToken, async (req, res) =
 // ── DELETE /caregiver/:token/medications/:medicationId ────────────────────────
 router.delete('/:token/medications/:medicationId', requireToken, async (req, res) => {
   try {
+    const supabase = getSupabase();
     const { medicationId } = req.params;
 
     const { data: existing } = await supabase
@@ -200,6 +207,7 @@ router.delete('/:token/medications/:medicationId', requireToken, async (req, res
 // ── POST /caregiver/:token/generate-token ────────────────────────────────────
 router.post('/:token/generate-token', requireToken, async (req, res) => {
   try {
+    const supabase = getSupabase();
     const newToken = randomUUID();
 
     const { error } = await supabase

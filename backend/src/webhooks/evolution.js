@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { supabase } from '../lib/supabase.js';
+import getSupabase from '../lib/supabase.js';
 import { processConversation } from '../services/conversation.js';
 import { transcribeAudio, generateAudio } from '../services/audio.js';
 import { analyzeImage } from '../services/vision.js';
@@ -19,6 +19,7 @@ export async function evolutionWebhook(req, res) {
 }
 
 async function processPayload(body) {
+  const supabase = getSupabase();
   try {
     const data = body?.data;
     if (!data) return;

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import supabase from '../lib/supabase.js';
+import getSupabase from '../lib/supabase.js';
 
 const REMINDER_MSG = (medicationName, userName) =>
   `💊 Hora do remédio! Está na hora de tomar ${medicationName}, ${userName}! Já tomou? Me responde aqui 😊`;
@@ -36,7 +36,7 @@ function nowInSaoPaulo() {
  */
 export async function checkAndSendReminders() {
   try {
-    const { data: medications, error } = await supabase.get()
+    const { data: medications, error } = await getSupabase()
       .from('med_medications')
       .select('*, cus_users(id, name, phone)')
       .eq('active', true);
@@ -58,7 +58,7 @@ export async function checkAndSendReminders() {
 
         // Dedup: check if already sent within the last minute
         const windowStart = new Date(Date.now() - 60_000).toISOString();
-        const { data: existingLog } = await supabase.get()
+        const { data: existingLog } = await getSupabase()
           .from('med_medication_logs')
           .select('id')
           .eq('medication_id', med.id)
@@ -70,7 +70,7 @@ export async function checkAndSendReminders() {
 
         await sendWhatsAppMessage(user.phone, REMINDER_MSG(med.name, user.name || 'querido(a)'));
 
-        await supabase.get().from('med_medication_logs').insert({
+        await getSupabase().from('med_medication_logs').insert({
           medication_id: med.id,
           user_id: user.id,
           status: 'sent',
@@ -94,7 +94,7 @@ export async function confirmMedication(userId) {
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
-    const { data: log } = await supabase.get()
+    const { data: log } = await getSupabase()
       .from('med_medication_logs')
       .select('id')
       .eq('user_id', userId)
@@ -106,7 +106,7 @@ export async function confirmMedication(userId) {
 
     if (!log) return false;
 
-    await supabase.get()
+    await getSupabase()
       .from('med_medication_logs')
       .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
       .eq('id', log.id);

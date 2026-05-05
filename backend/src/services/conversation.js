@@ -1,4 +1,4 @@
-import supabase from '../lib/supabase.js';
+import getSupabase from '../lib/supabase.js';
 import { callLLM } from '../llm/router.js';
 import { parseSentiment } from './sentiment.js';
 
@@ -12,7 +12,7 @@ import { parseSentiment } from './sentiment.js';
  */
 export async function processConversation(user, content, newsContext) {
   // 1. LLM config
-  const { data: llmCfg } = await supabase.get()
+  const { data: llmCfg } = await getSupabase()
     .from('cfg_llm_config')
     .select('*')
     .limit(1)
@@ -21,7 +21,7 @@ export async function processConversation(user, content, newsContext) {
   let systemPrompt = llmCfg?.system_prompt || DEFAULT_SYSTEM_PROMPT;
 
   // 2. User profile
-  const { data: profile } = await supabase.get()
+  const { data: profile } = await getSupabase()
     .from('cus_profiles')
     .select('*')
     .eq('user_id', user.id)
@@ -37,7 +37,7 @@ export async function processConversation(user, content, newsContext) {
     .replace('{{profile.life_stories}}', profile?.life_stories || '');
 
   // 4. Conversation history (last 20 messages)
-  const { data: history } = await supabase.get()
+  const { data: history } = await getSupabase()
     .from('msg_conversations')
     .select('role, content')
     .eq('user_id', user.id)

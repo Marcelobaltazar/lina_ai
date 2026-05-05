@@ -9,4 +9,5 @@ function getClient() {
   ));
 }
 
-export default { get: () => getClient() };
+export { getClient };
+export default getClient;
