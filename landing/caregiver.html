@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal do Cuidador · Lina.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="caregiver.css" />
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="c-nav">
+  <a href="/" class="c-nav-logo">Lina<span class="logo-dot">.ai</span></a>
+  <span class="c-nav-label">Portal do Cuidador</span>
+</nav>
+
+<!-- LOADING / ERROR STATES -->
+<div id="state-loading" class="state-screen">
+  <div class="spinner"></div>
+  <p>Carregando...</p>
+</div>
+<div id="state-error" class="state-screen hidden">
+  <div class="state-icon">🔒</div>
+  <h2>Link inválido ou expirado</h2>
+  <p>Este link de acesso não é válido. Solicite um novo link para o responsável.</p>
+</div>
+
+<!-- MAIN CONTENT (hidden until loaded) -->
+<main id="main-content" class="hidden">
+
+  <!-- HEADER -->
+  <section class="c-hero">
+    <div class="c-hero-inner">
+      <div class="c-hero-text">
+        <p id="elder-city" class="c-city"></p>
+        <h1 id="elder-name" class="c-elder-name"></h1>
+      </div>
+      <div class="c-welcome-card">
+        <span class="c-welcome-icon">💚</span>
+        <p id="welcome-msg"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WEEK STATS -->
+  <section class="c-section">
+    <div class="c-inner">
+      <h2 class="c-section-title">Resumo da semana</h2>
+      <div class="c-stats-grid">
+        <div class="c-stat-card">
+          <span class="c-stat-val" id="stat-msgs">—</span>
+          <span class="c-stat-lbl">mensagens trocadas</span>
+        </div>
+        <div class="c-stat-card">
+          <span class="c-stat-val" id="stat-days">—</span>
+          <span class="c-stat-lbl">dias ativos</span>
+        </div>
+        <div class="c-stat-card">
+          <span class="c-stat-val" id="stat-meds">—</span>
+          <span class="c-stat-lbl">remédios confirmados</span>
+        </div>
+        <div class="c-stat-card" id="stat-alerts-card">
+          <span class="c-stat-val" id="stat-alerts">—</span>
+          <span class="c-stat-lbl">alertas pendentes</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ALERTS -->
+  <section class="c-section c-section-alt">
+    <div class="c-inner">
+      <h2 class="c-section-title">Alertas recentes</h2>
+      <div id="alerts-list"></div>
+      <p class="c-disclaimer">⚠️ Estes são indícios identificados pela Lina, não diagnósticos.</p>
+    </div>
+  </section>
+
+  <!-- MEDICATIONS -->
+  <section class="c-section">
+    <div class="c-inner">
+      <div class="c-section-header">
+        <h2 class="c-section-title" style="margin-bottom:0">Medicamentos</h2>
+        <button class="btn-primary" onclick="openModal()">+ Adicionar medicamento</button>
+      </div>
+      <div id="medications-list" class="c-med-grid"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="c-footer">
+  <span>Lina.ai © 2025 · Companhia com cuidado</span>
+</footer>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="handleOverlayClick(event)">
+  <div class="c-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span id="modal-title">Adicionar medicamento</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="med-form-el" onsubmit="saveMedication(event)">
+        <input type="hidden" id="med-id" />
+
+        <!-- Identificação -->
+        <div class="form-group-title">Identificação</div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Nome comercial *</label>
+            <input class="form-control" id="med-name" placeholder="Ex: Losartana" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nome genérico</label>
+            <input class="form-control" id="med-generic-name" placeholder="Ex: Losartana potássica" />
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">Dosagem</label>
+            <input class="form-control" id="med-dosage" placeholder="Ex: 50mg" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Forma</label>
+            <select class="form-control" id="med-form">
+              <option value="Comprimido">Comprimido</option>
+              <option value="Cápsula">Cápsula</option>
+              <option value="Líquido">Líquido</option>
+              <option value="Injeção">Injeção</option>
+              <option value="Pomada">Pomada</option>
+              <option value="Colírio">Colírio</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fabricante</label>
+            <input class="form-control" id="med-manufacturer" placeholder="Ex: EMS" />
+          </div>
+        </div>
+
+        <!-- Como tomar -->
+        <div class="form-group-title">Como tomar</div>
+        <div class="form-group">
+          <label class="form-label">Horários</label>
+          <div id="times-container" class="times-container"></div>
+          <button type="button" class="btn-add-time" onclick="addTimeField()">+ Adicionar horário</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dias da semana</label>
+          <div class="days-grid">
+            <label class="day-check"><input type="checkbox" name="days" value="mon" checked /><span>Seg</span></label>
+            <label class="day-check"><input type="checkbox" name="days" value="tue" checked /><span>Ter</span></label>
+            <label class="day-check"><input type="checkbox" name="days" value="wed" checked /><span>Qua</span></label>
+            <label class="day-check"><input type="checkbox" name="days" value="thu" checked /><span>Qui</span></label>
+            <label class="day-check"><input type="checkbox" name="days" value="fri" checked /><span>Sex</span></label>
+            <label class="day-check"><input type="checkbox" name="days" value="sat" checked /><span>Sáb</span></label>
+            <label class="day-check"><input type="checkbox" name="days" value="sun" checked /><span>Dom</span></label>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Quantidade por dose</label>
+            <input class="form-control" id="med-quantity" placeholder="Ex: 1 comprimido, 5ml" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tomar com</label>
+            <select class="form-control" id="med-take-with">
+              <option value="Água">Água</option>
+              <option value="Com comida">Com comida</option>
+              <option value="Em jejum">Em jejum</option>
+              <option value="Com leite">Com leite</option>
+              <option value="Qualquer">Qualquer</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Informações clínicas -->
+        <div class="form-group-title">Informações clínicas</div>
+        <div class="form-group">
+          <label class="form-label">Para que serve / condição tratada</label>
+          <textarea class="form-control" id="med-purpose" rows="2" placeholder="Ex: Controle da pressão arterial"></textarea>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Médico que prescreveu</label>
+            <input class="form-control" id="med-doctor-name" placeholder="Dr. João Silva" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Especialidade</label>
+            <input class="form-control" id="med-doctor-specialty" placeholder="Cardiologista" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Data de início</label>
+            <input class="form-control" type="date" id="med-start-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data de fim</label>
+            <input class="form-control" type="date" id="med-end-date" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="day-check">
+            <input type="checkbox" id="med-continuous" onchange="toggleEndDate(this.checked)" />
+            <span>Uso contínuo (sem data de fim)</span>
+          </label>
+        </div>
+
+        <!-- Alertas e observações -->
+        <div class="form-group-title">Alertas e observações</div>
+        <div class="form-group">
+          <label class="form-label">Efeitos colaterais a observar</label>
+          <textarea class="form-control" id="med-side-effects" rows="2" placeholder="Ex: Tontura, pressão baixa"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">O que fazer se esquecer uma dose</label>
+          <textarea class="form-control" id="med-missed-dose" rows="2" placeholder="Ex: Tomar assim que lembrar, se não estiver próximo da próxima dose"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Restrições</label>
+          <textarea class="form-control" id="med-restrictions" rows="2" placeholder="Ex: Evitar sol, não tomar com álcool"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações do cuidador</label>
+          <textarea class="form-control" id="med-notes" rows="2" placeholder="Anotações pessoais"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar medicamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="caregiver.js"></script>
+</body>
+</html>

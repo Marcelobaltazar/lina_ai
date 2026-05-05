@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase.js';
+import supabase from '../lib/supabase.js';
 import { sendAlertEmail } from './email.js';
 
 const ALERT_RULES = [
@@ -34,7 +34,7 @@ export async function createAlert(userId, messageId, flagReason) {
   try {
     const { type, severity } = detectAlertType(flagReason);
 
-    const { data: alert, error: alertErr } = await supabase
+    const { data: alert, error: alertErr } = await supabase.get()
       .from('alr_alerts')
       .insert({
         user_id: userId,
@@ -50,7 +50,7 @@ export async function createAlert(userId, messageId, flagReason) {
     if (alertErr) throw alertErr;
 
     // Audit log
-    await supabase.from('adm_audit_log').insert({
+    await supabase.get().from('adm_audit_log').insert({
       action: 'alert_created',
       target_table: 'alr_alerts',
       target_id: alert.id,
@@ -76,7 +76,7 @@ export async function createAlert(userId, messageId, flagReason) {
  */
 export async function notifyFamilyAlert(userId, alertType, flagReason) {
   try {
-    const { data: user } = await supabase
+    const { data: user } = await supabase.get()
       .from('cus_users')
       .select('name')
       .eq('id', userId)
@@ -84,7 +84,7 @@ export async function notifyFamilyAlert(userId, alertType, flagReason) {
 
     const elderName = user?.name || 'seu familiar';
 
-    const { data: relatives } = await supabase
+    const { data: relatives } = await supabase.get()
       .from('fam_relatives')
       .select('email, name')
       .eq('user_id', userId)
@@ -96,7 +96,7 @@ export async function notifyFamilyAlert(userId, alertType, flagReason) {
     }
 
     // Mark all pending alerts for this user as notified
-    await supabase
+    await supabase.get()
       .from('alr_alerts')
       .update({ notified_family: true })
       .eq('user_id', userId)

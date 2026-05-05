@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import axios from 'axios';
-import { supabase } from '../lib/supabase.js';
+import supabase from '../lib/supabase.js';
 import { checkAndSendReminders } from '../services/medication.js';
 import { sendWeeklyReport } from '../services/email.js';
 import { complete as claudeComplete } from '../llm/providers/claude.js';
@@ -19,7 +19,7 @@ cron.schedule('0 10 * * *', async () => {
   try {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: users, error } = await supabase
+    const { data: users, error } = await supabase.get()
       .from('cus_users')
       .select('id, name, phone')
       .eq('status', 'active')
@@ -33,7 +33,7 @@ cron.schedule('0 10 * * *', async () => {
         const msg = `Oi ${user.name || 'querido(a)'}! 💚 Estava com saudade de você! Tem alguma novidade pra me contar?`;
         await sendWhatsAppMessage(user.phone, msg);
 
-        await supabase
+        await supabase.get()
           .from('cus_users')
           .update({ last_interaction: new Date().toISOString() })
           .eq('id', user.id);
@@ -51,7 +51,7 @@ cron.schedule('0 8 * * 1', async () => {
   try {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: relatives, error } = await supabase
+    const { data: relatives, error } = await supabase.get()
       .from('fam_relatives')
       .select('id, name, email, user_id, cus_users(id, name)')
       .eq('report_enabled', true);
@@ -68,7 +68,7 @@ cron.schedule('0 8 * * 1', async () => {
         const elderName = elder?.name || 'seu familiar';
 
         // Total messages and active days
-        const { data: msgs } = await supabase
+        const { data: msgs } = await supabase.get()
           .from('msg_conversations')
           .select('created_at, content, role')
           .eq('user_id', userId)
@@ -82,7 +82,7 @@ cron.schedule('0 8 * * 1', async () => {
         ).size;
 
         // Medication stats
-        const { data: medLogs } = await supabase
+        const { data: medLogs } = await supabase.get()
           .from('med_medication_logs')
           .select('status')
           .eq('user_id', userId)
@@ -92,7 +92,7 @@ cron.schedule('0 8 * * 1', async () => {
         const medicationsConfirmed = (medLogs || []).filter((l) => l.status === 'confirmed').length;
 
         // Sad signals
-        const { data: sadAlerts } = await supabase
+        const { data: sadAlerts } = await supabase.get()
           .from('alr_alerts')
           .select('id')
           .eq('user_id', userId)
