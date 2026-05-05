@@ -30,13 +30,10 @@ function nowInSaoPaulo() {
   return { time, day };
 }
 
-/**
- * Checks all active medication schedules and sends WhatsApp reminders when due.
- * Deduplicates via med_medication_logs within a 1-minute window.
- */
 export async function checkAndSendReminders() {
+  const supabase = getSupabase();
   try {
-    const { data: medications, error } = await getSupabase()
+    const { data: medications, error } = await supabase
       .from('med_medications')
       .select('*, cus_users(id, name, phone)')
       .eq('active', true);
@@ -56,9 +53,8 @@ export async function checkAndSendReminders() {
         const user = med.cus_users;
         if (!user?.phone) continue;
 
-        // Dedup: check if already sent within the last minute
         const windowStart = new Date(Date.now() - 60_000).toISOString();
-        const { data: existingLog } = await getSupabase()
+        const { data: existingLog } = await supabase
           .from('med_medication_logs')
           .select('id')
           .eq('medication_id', med.id)
@@ -70,7 +66,7 @@ export async function checkAndSendReminders() {
 
         await sendWhatsAppMessage(user.phone, REMINDER_MSG(med.name, user.name || 'querido(a)'));
 
-        await getSupabase().from('med_medication_logs').insert({
+        await supabase.from('med_medication_logs').insert({
           medication_id: med.id,
           user_id: user.id,
           status: 'sent',
@@ -85,16 +81,12 @@ export async function checkAndSendReminders() {
   }
 }
 
-/**
- * Marks the most recent pending reminder as confirmed for a user.
- * @param {string} userId
- * @returns {Promise<boolean>}
- */
 export async function confirmMedication(userId) {
+  const supabase = getSupabase();
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
 
-    const { data: log } = await getSupabase()
+    const { data: log } = await supabase
       .from('med_medication_logs')
       .select('id')
       .eq('user_id', userId)
@@ -106,7 +98,7 @@ export async function confirmMedication(userId) {
 
     if (!log) return false;
 
-    await getSupabase()
+    await supabase
       .from('med_medication_logs')
       .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
       .eq('id', log.id);

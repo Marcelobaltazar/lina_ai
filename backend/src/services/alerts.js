@@ -9,10 +9,6 @@ const ALERT_RULES = [
   { keywords: ['emergência', 'emergencia', 'caiu', 'caindo', 'dor forte', 'mal súbito', 'mal subito', 'samu'], type: 'danger', severity: 'high' },
 ];
 
-/**
- * @param {string} flagReason
- * @returns {{ type: string, severity: 'low'|'medium'|'high' }}
- */
 export function detectAlertType(flagReason) {
   const lower = (flagReason || '').toLowerCase();
   for (const rule of ALERT_RULES) {
@@ -23,18 +19,12 @@ export function detectAlertType(flagReason) {
   return { type: 'sadness', severity: 'low' };
 }
 
-/**
- * Persists an alert, audits it, and notifies family on high severity.
- * @param {string} userId
- * @param {string|null} messageId
- * @param {string} flagReason
- * @returns {Promise<object|null>}
- */
 export async function createAlert(userId, messageId, flagReason) {
+  const supabase = getSupabase();
   try {
     const { type, severity } = detectAlertType(flagReason);
 
-    const { data: alert, error: alertErr } = await getSupabase()
+    const { data: alert, error: alertErr } = await supabase
       .from('alr_alerts')
       .insert({
         user_id: userId,
@@ -49,8 +39,7 @@ export async function createAlert(userId, messageId, flagReason) {
 
     if (alertErr) throw alertErr;
 
-    // Audit log
-    await getSupabase().from('adm_audit_log').insert({
+    await supabase.from('adm_audit_log').insert({
       action: 'alert_created',
       target_table: 'alr_alerts',
       target_id: alert.id,
@@ -68,15 +57,10 @@ export async function createAlert(userId, messageId, flagReason) {
   }
 }
 
-/**
- * Notifies family members with report_enabled=true about a high-severity alert.
- * @param {string} userId
- * @param {string} alertType
- * @param {string} flagReason
- */
 export async function notifyFamilyAlert(userId, alertType, flagReason) {
+  const supabase = getSupabase();
   try {
-    const { data: user } = await getSupabase()
+    const { data: user } = await supabase
       .from('cus_users')
       .select('name')
       .eq('id', userId)
@@ -84,7 +68,7 @@ export async function notifyFamilyAlert(userId, alertType, flagReason) {
 
     const elderName = user?.name || 'seu familiar';
 
-    const { data: relatives } = await getSupabase()
+    const { data: relatives } = await supabase
       .from('fam_relatives')
       .select('email, name')
       .eq('user_id', userId)
@@ -95,8 +79,7 @@ export async function notifyFamilyAlert(userId, alertType, flagReason) {
       await sendAlertEmail(relative.email, relative.name, elderName, alertType, flagReason);
     }
 
-    // Mark all pending alerts for this user as notified
-    await getSupabase()
+    await supabase
       .from('alr_alerts')
       .update({ notified_family: true })
       .eq('user_id', userId)

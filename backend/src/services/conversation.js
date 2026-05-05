@@ -2,17 +2,10 @@ import getSupabase from '../lib/supabase.js';
 import { callLLM } from '../llm/router.js';
 import { parseSentiment } from './sentiment.js';
 
-/**
- * Orchestrates an LLM turn for a given user.
- *
- * @param {object} user       - cus_users row
- * @param {string} content    - processed user message text
- * @param {string|null} newsContext
- * @returns {Promise<{ cleanText: string, sentiment: string, flagged: boolean, flagReason: string|null }>}
- */
 export async function processConversation(user, content, newsContext) {
-  // 1. LLM config
-  const { data: llmCfg } = await getSupabase()
+  const supabase = getSupabase();
+
+  const { data: llmCfg } = await supabase
     .from('cfg_llm_config')
     .select('*')
     .limit(1)
@@ -20,14 +13,12 @@ export async function processConversation(user, content, newsContext) {
 
   let systemPrompt = llmCfg?.system_prompt || DEFAULT_SYSTEM_PROMPT;
 
-  // 2. User profile
-  const { data: profile } = await getSupabase()
+  const { data: profile } = await supabase
     .from('cus_profiles')
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
-  // 3. Variable substitution in system prompt
   systemPrompt = systemPrompt
     .replace('{{user.name}}', user.name || 'amigo(a)')
     .replace('{{user.city}}', user.city || '')
@@ -36,8 +27,7 @@ export async function processConversation(user, content, newsContext) {
     .replace('{{profile.hobbies}}', profile?.hobbies || '')
     .replace('{{profile.life_stories}}', profile?.life_stories || '');
 
-  // 4. Conversation history (last 20 messages)
-  const { data: history } = await getSupabase()
+  const { data: history } = await supabase
     .from('msg_conversations')
     .select('role, content')
     .eq('user_id', user.id)
@@ -49,15 +39,12 @@ export async function processConversation(user, content, newsContext) {
     content: m.content,
   }));
 
-  // 5. News context appended to system prompt
   if (newsContext) {
     systemPrompt += `\n\n[CONTEXTO DE NOTÍCIAS RECENTES]: ${newsContext}`;
   }
 
-  // 6. LLM call — router returns { text, usage }
   const { text: raw } = await callLLM(systemPrompt, historyMessages, content, llmCfg || {});
 
-  // 7. Parse sentiment / flags
   return parseSentiment(raw);
 }
 

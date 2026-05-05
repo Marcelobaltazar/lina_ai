@@ -19,6 +19,7 @@ export async function evolutionWebhook(req, res) {
 }
 
 async function processPayload(body) {
+  console.log('[webhook] payload recebido:', JSON.stringify(body).slice(0, 200));
   const supabase = getSupabase();
   try {
     const data = body?.data;
@@ -172,7 +173,7 @@ async function processPayload(body) {
 
     await sendWhatsAppMessage(phone, cleanText);
   } catch (err) {
-    console.error('[evolution] processPayload error', err);
+    console.error('[webhook] erro:', err.message, err.stack);
   }
 }
 
