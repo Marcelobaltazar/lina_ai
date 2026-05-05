@@ -13,13 +13,15 @@ const TRIAL_WARNING_MSG =
 
 export async function evolutionWebhook(req, res) {
   res.sendStatus(200);
-  processPayload(req.body).catch((err) =>
-    console.error('[evolution] unhandled error', err),
-  );
+  try {
+    await processPayload(req.body);
+  } catch (err) {
+    console.error('[webhook] erro geral:', err.message);
+  }
 }
 
 async function processPayload(body) {
-  console.log('[webhook] payload recebido:', JSON.stringify(body).slice(0, 200));
+  console.log('[webhook] recebido tipo:', body?.data?.messageType, 'de:', body?.data?.key?.remoteJid);
   const supabase = getSupabase();
   try {
     const data = body?.data;
