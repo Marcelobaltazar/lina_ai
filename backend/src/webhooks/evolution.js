@@ -29,6 +29,8 @@ async function processPayload(body) {
 
     if (data.key?.fromMe) return;
 
+    if (data.key?.remoteJid?.endsWith('@g.us')) return;
+
     const rawPhone = data.key?.remoteJid || '';
     const phone = rawPhone.replace('@s.whatsapp.net', '').replace(/\D/g, '');
     if (!phone) return;
