@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 let _client = null;
 const getClient = () => (_client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
-const TMP_PATH = '/tmp/audio_temp.ogg';
+const TMP_PATH = '/tmp/audio_temp.mp3';
 
 export async function transcribeAudio(mediaUrl) {
   try {
@@ -33,6 +33,7 @@ export async function transcribeAudio(mediaUrl) {
 
 export async function generateAudio(text) {
   try {
+    console.log('[audio] elevenlabs key:', process.env.ELEVENLABS_API_KEY ? 'presente' : 'AUSENTE');
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`;
 
     const response = await axios.post(

@@ -13,10 +13,18 @@ export async function analyzeSentiment(text) {
   try {
     const { text: result } = await complete(CLASSIFY_SYSTEM, [], text, { max_tokens: 20 });
     const match = result.match(/\[SENTIMENT:(\w+)\]/);
-    return match ? match[1] : 'NEUTRO';
+    const sentiment = match ? match[1] : null;
+    const map = {
+      neutro: 'neutral', neutral: 'neutral',
+      triste: 'sad', sad: 'sad',
+      ansioso: 'anxious', anxious: 'anxious',
+      feliz: 'happy', happy: 'happy',
+      alerta: 'alert', alert: 'alert',
+    };
+    return map[sentiment?.toLowerCase()] || 'neutral';
   } catch (err) {
     console.error('[sentiment]', err);
-    return 'NEUTRO';
+    return 'neutral';
   }
 }
 

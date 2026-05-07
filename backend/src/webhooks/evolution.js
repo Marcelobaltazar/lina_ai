@@ -21,15 +21,18 @@ export async function evolutionWebhook(req, res) {
 }
 
 async function processPayload(body) {
-  console.log('[webhook] recebido tipo:', body?.data?.messageType, 'de:', body?.data?.key?.remoteJid);
+  const remoteJid = body?.data?.key?.remoteJid || '';
+  if (remoteJid.endsWith('@g.us')) {
+    console.log('[webhook] ignorando grupo:', remoteJid);
+    return;
+  }
+  console.log('[webhook] recebido tipo:', body?.data?.messageType, 'de:', remoteJid);
   const supabase = getSupabase();
   try {
     const data = body?.data;
     if (!data) return;
 
     if (data.key?.fromMe) return;
-
-    if (data.key?.remoteJid?.endsWith('@g.us')) return;
 
     const rawPhone = data.key?.remoteJid || '';
     const phone = rawPhone.replace('@s.whatsapp.net', '').replace(/\D/g, '');
@@ -191,14 +194,17 @@ async function sendWhatsAppMessage(phone, text) {
 }
 
 async function sendWhatsAppAudio(phone, audioBuffer) {
+  const base64 = audioBuffer.toString('base64');
+  console.log('[audio] tentando enviar áudio, tamanho base64:', base64.length);
   const url = `${process.env.EVOLUTION_API_URL}/message/sendMedia/${process.env.EVOLUTION_INSTANCE}`;
   await axios.post(
     url,
     {
       number: phone,
       mediatype: 'audio',
-      media: audioBuffer.toString('base64'),
       mimetype: 'audio/ogg; codecs=opus',
+      media: base64,
+      fileName: 'audio.ogg',
     },
     { headers: { apikey: process.env.EVOLUTION_API_KEY } },
   );

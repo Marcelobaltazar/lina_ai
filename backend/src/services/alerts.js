@@ -31,7 +31,6 @@ export async function createAlert(userId, messageId, flagReason) {
         message_id: messageId || null,
         type,
         severity,
-        flag_reason: flagReason,
         notified_family: false,
       })
       .select()
