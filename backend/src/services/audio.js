@@ -6,14 +6,17 @@ let _client = null;
 const getClient = () => (_client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
 export async function transcribeAudio(mediaUrl) {
-  const tmpPath = '/tmp/audio_temp.ogg';
+  const tmpPath = '/tmp/audio_temp.oga';
   try {
     const response = await axios.get(mediaUrl, {
       responseType: 'arraybuffer',
       headers: { apikey: process.env.EVOLUTION_API_KEY },
     });
+    console.log('[audio] primeiros bytes:', Buffer.from(response.data).slice(0, 16).toString('hex'));
+    console.log('[audio] content-type:', response.headers['content-type']);
+    console.log('[audio] tamanho:', response.data.byteLength);
     fs.writeFileSync(tmpPath, Buffer.from(response.data));
-    const file = await toFile(fs.createReadStream(tmpPath), 'audio.ogg', { type: 'audio/ogg' });
+    const file = await toFile(fs.createReadStream(tmpPath), 'audio.oga', { type: 'audio/oga' });
     const result = await getClient().audio.transcriptions.create({
       file,
       model: 'whisper-1',
