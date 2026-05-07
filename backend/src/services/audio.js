@@ -44,6 +44,9 @@ export async function transcribeAudio(data) {
 
 export async function generateAudio(text) {
   try {
+    const key = process.env.ELEVENLABS_API_KEY || '';
+    console.log('[audio] elevenlabs key length:', key.length, '| início:', key.slice(0, 6), '| fim:', key.slice(-4));
+    console.log('[audio] voice_id:', process.env.ELEVENLABS_VOICE_ID);
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVENLABS_VOICE_ID}`;
     const response = await axios.post(url, {
       text,
@@ -55,7 +58,8 @@ export async function generateAudio(text) {
     });
     return Buffer.from(response.data);
   } catch (err) {
-    console.error('[audio] generateAudio erro:', err.message);
+    const body = err.response?.data ? Buffer.from(err.response.data).toString('utf8') : '';
+    console.error('[audio] generateAudio erro:', err.message, '| body:', body);
     return null;
   }
 }
