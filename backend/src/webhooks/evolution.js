@@ -93,9 +93,9 @@ async function processPayload(body) {
     let content = textContent || '';
     let mediaType = 'text';
 
-    if (messageType === 'audioMessage' && mediaUrl) {
+    if (messageType === 'audioMessage') {
       try {
-        content = await transcribeAudio(mediaUrl);
+        content = await transcribeAudio(data);
         mediaType = 'audio';
       } catch (err) {
         console.error('[evolution] transcribeAudio failed', err);
