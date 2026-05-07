@@ -166,6 +166,7 @@ async function processPayload(body) {
     }
 
     // ── Reply ───────────────────────────────────────────────────────────────
+    console.log('[reply] audio_mode:', user.audio_mode, '| elevenlabs key:', process.env.ELEVENLABS_API_KEY ? 'presente' : 'AUSENTE');
     if (user.audio_mode) {
       try {
         const audioBuffer = await generateAudio(cleanText);

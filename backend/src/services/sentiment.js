@@ -39,11 +39,21 @@ export async function analyzeSentiment(text) {
  * @param {string} raw - full LLM output
  * @returns {{ cleanText: string, sentiment: string, flagged: boolean, flagReason: string|null }}
  */
+const SENTIMENT_MAP = {
+  neutro: 'neutral', neutral: 'neutral',
+  triste: 'sad', sad: 'sad',
+  negativo: 'sad',
+  ansioso: 'anxious', anxious: 'anxious',
+  feliz: 'happy', happy: 'happy', positivo: 'happy',
+  alerta: 'alert', alert: 'alert',
+};
+
 export function parseSentiment(raw) {
   let text = raw;
 
   const sentimentMatch = text.match(/\[SENTIMENT:([A-Z_]+)\]/);
-  const sentiment = sentimentMatch ? sentimentMatch[1] : 'NEUTRO';
+  const rawSentiment = sentimentMatch ? sentimentMatch[1] : null;
+  const sentiment = SENTIMENT_MAP[rawSentiment?.toLowerCase()] || 'neutral';
 
   const flagMatch = text.match(/\[FLAG:([^\]]+)\]/);
   const flagged = !!flagMatch;
