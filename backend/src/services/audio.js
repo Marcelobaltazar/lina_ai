@@ -1,11 +1,16 @@
 import fs from 'fs';
 import axios from 'axios';
 import OpenAI from 'openai';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 let _client = null;
 const getClient = () => (_client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
-const TMP_PATH = '/tmp/audio_temp.mp3';
+const TMP_INPUT = '/tmp/audio_input';
+const TMP_OUTPUT = '/tmp/audio_output.mp3';
 
 export async function transcribeAudio(mediaUrl) {
   try {
@@ -14,10 +19,18 @@ export async function transcribeAudio(mediaUrl) {
       headers: { apikey: process.env.EVOLUTION_API_KEY },
     });
 
-    fs.writeFileSync(TMP_PATH, Buffer.from(response.data));
+    fs.writeFileSync(TMP_INPUT, Buffer.from(response.data));
+
+    await new Promise((resolve, reject) => {
+      ffmpeg(TMP_INPUT)
+        .toFormat('mp3')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(TMP_OUTPUT);
+    });
 
     const result = await getClient().audio.transcriptions.create({
-      file: fs.createReadStream(TMP_PATH),
+      file: fs.createReadStream(TMP_OUTPUT),
       model: 'whisper-1',
       language: 'pt',
     });
@@ -27,7 +40,8 @@ export async function transcribeAudio(mediaUrl) {
     console.error('[audio] transcribeAudio', err);
     return null;
   } finally {
-    try { fs.unlinkSync(TMP_PATH); } catch (_) {}
+    try { fs.unlinkSync(TMP_INPUT); } catch (_) {}
+    try { fs.unlinkSync(TMP_OUTPUT); } catch (_) {}
   }
 }
 
