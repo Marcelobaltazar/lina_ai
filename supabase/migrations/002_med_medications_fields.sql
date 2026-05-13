@@ -1,0 +1,20 @@
+-- Adiciona campos estendidos à tabela med_medications
+ALTER TABLE med_medications
+  ADD COLUMN IF NOT EXISTS generic_name      TEXT,
+  ADD COLUMN IF NOT EXISTS manufacturer      TEXT,
+  ADD COLUMN IF NOT EXISTS dosage            TEXT,
+  ADD COLUMN IF NOT EXISTS form              TEXT,
+  ADD COLUMN IF NOT EXISTS quantity_per_dose TEXT,
+  ADD COLUMN IF NOT EXISTS take_with         TEXT,
+  ADD COLUMN IF NOT EXISTS purpose           TEXT,
+  ADD COLUMN IF NOT EXISTS doctor_name       TEXT,
+  ADD COLUMN IF NOT EXISTS doctor_specialty  TEXT,
+  ADD COLUMN IF NOT EXISTS start_date        DATE,
+  ADD COLUMN IF NOT EXISTS end_date          DATE,
+  ADD COLUMN IF NOT EXISTS continuous_use    BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS side_effects      TEXT,
+  ADD COLUMN IF NOT EXISTS missed_dose       TEXT,
+  ADD COLUMN IF NOT EXISTS restrictions      TEXT,
+  ADD COLUMN IF NOT EXISTS notes             TEXT,
+  ADD COLUMN IF NOT EXISTS times             JSONB,
+  ADD COLUMN IF NOT EXISTS days              JSONB;

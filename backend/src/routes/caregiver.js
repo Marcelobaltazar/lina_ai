@@ -202,8 +202,8 @@ router.post('/:token/medications', requireToken, async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    console.error('[caregiver] erro ao salvar medicamento:', err.message, err);
-    res.status(500).json({ error: 'Erro interno' });
+    console.error('[caregiver] erro medications POST:', err.message, err.stack);
+    res.status(500).json({ error: 'Erro interno', detail: err.message });
   }
 });
 
