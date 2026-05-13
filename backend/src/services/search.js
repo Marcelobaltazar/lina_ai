@@ -1,11 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const getAnthropic = (() => {
-  let c = null;
-  return () => (c ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
-})();
 
 const getOpenAI = (() => {
   let c = null;
@@ -43,13 +37,13 @@ export async function needsSearch(message, provider) {
         return res.response.text();
       }
 
-      // claude (default)
-      const res = await getAnthropic().messages.create({
-        model: 'claude-haiku-4-5-20251001',
+      // claude (default) — usa gpt-4o-mini como decisor leve
+      const res = await getOpenAI().chat.completions.create({
+        model: 'gpt-4o-mini',
         max_tokens: 5,
         messages: [{ role: 'user', content: prompt }],
       });
-      return res.content[0].text;
+      return res.choices[0].message.content;
     })();
 
     const timeout = new Promise((resolve) => setTimeout(() => resolve('NÃO'), 3000));

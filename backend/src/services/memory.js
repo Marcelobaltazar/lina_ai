@@ -1,14 +1,14 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import getSupabase from '../lib/supabase.js';
 
-const client = new Anthropic();
-const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+let _openai = null;
+const getClient = () => (_openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
 export async function extractAndSaveMemories(userId, recentMessages) {
   try {
-    const response = await client.messages.create({
-      model: HAIKU_MODEL,
-      max_tokens: 1024,
+    const response = await getClient().chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 500,
       messages: [
         {
           role: 'user',
@@ -24,7 +24,7 @@ Mensagens: ${JSON.stringify(recentMessages)}`,
       ],
     });
 
-    const raw = response.content[0]?.text || '[]';
+    const raw = response.choices[0].message.content || '[]';
     let memories;
     try {
       memories = JSON.parse(raw);
@@ -77,8 +77,8 @@ export async function fetchRelevantMemories(userId, currentMessage) {
 
     const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2000));
 
-    const rankPromise = client.messages.create({
-      model: HAIKU_MODEL,
+    const rankPromise = getClient().chat.completions.create({
+      model: 'gpt-4o-mini',
       max_tokens: 256,
       messages: [
         {
@@ -101,7 +101,7 @@ Memórias: ${JSON.stringify(memories.map((m) => ({
     const response = await Promise.race([rankPromise, timeoutPromise]);
     if (!response) return [];
 
-    const raw = response.content[0]?.text || '[]';
+    const raw = response.choices[0].message.content || '[]';
     let relevantIds;
     try {
       relevantIds = JSON.parse(raw);
