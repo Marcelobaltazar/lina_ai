@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/cuidador/:token", "destination": "/caregiver.html" }
+  ]
+}
