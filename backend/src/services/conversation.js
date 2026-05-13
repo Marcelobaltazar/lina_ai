@@ -45,6 +45,15 @@ export async function processConversation(user, content, newsContext) {
 
   const { text: raw } = await callLLM(systemPrompt, historyMessages, content, llmCfg || {});
 
+  // Detect city mention in user message and persist if not already set
+  if (!user.city) {
+    const cityMatch = content.match(/\b(?:em|aqui em|moro em|sou de|de)\s+([A-ZÀÁÂÃÉÊÍÓÔÕÚ][a-zàáâãéêíóôõú]+(?:\s+[A-ZÀÁÂÃÉÊÍÓÔÕÚ][a-zàáâãéêíóôõú]+)*)/);
+    if (cityMatch) {
+      const city = cityMatch[1];
+      await getSupabase().from('cus_users').update({ city }).eq('id', user.id);
+    }
+  }
+
   return parseSentiment(raw);
 }
 

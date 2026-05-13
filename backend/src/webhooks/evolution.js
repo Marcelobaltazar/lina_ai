@@ -67,6 +67,45 @@ async function processPayload(body) {
       user = created;
     }
 
+    // ── Onboarding — pede nome na primeira mensagem ─────────────────────────
+    if (!user.name || user.name === '__awaiting_name__') {
+
+      // Usuário sem nome — pede o nome
+      if (!user.name) {
+        await supabase
+          .from('cus_users')
+          .update({ name: '__awaiting_name__' })
+          .eq('id', user.id);
+
+        await sendWhatsAppMessage(phone,
+          'Oi! Que bom ter você aqui! 😊 Eu sou a Lina, sua nova companheira. Como posso te chamar?'
+        );
+        return;
+      }
+
+      // Usuário respondeu com o nome
+      if (user.name === '__awaiting_name__') {
+        const content = (textContent || '').trim();
+        const nome = content.split(' ')[0];
+        const nomeFormatado = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
+
+        await supabase
+          .from('cus_users')
+          .update({
+            name: nomeFormatado,
+            onboarded_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        await sendWhatsAppMessage(phone,
+          `Que nome lindo! Prazer, ${nomeFormatado}! 💚 Pode me contar qualquer coisa — estou aqui pra isso.`
+        );
+        return;
+      }
+    }
+
+    // restante do fluxo normal continua abaixo...
+
     // ── Access control ──────────────────────────────────────────────────────
     if (user.status === 'blocked') return;
 

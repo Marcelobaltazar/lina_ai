@@ -1,0 +1,10 @@
+[33m1d8d71b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m ajustes novos de eleven
+[33m5ad6d06[m banco + elevenlabs chaves
+[33mbabc52b[m ajuste base64
+[33mc9da8db[m fix: log bytes audio + tenta oga
+[33mfbc6bf1[m fix: remove ffmpeg definitivo usa toFile openai
+[33m56af883[m fix: instala ffmpeg packages
+[33m5f4efa4[m fix: sentiment normalizado, alerts sem flag_reason, audio mp3, filtro grupos
+[33mc990dbf[m fix: ignora mensagens de grupos
+[33m6804162[m fix: sendStatus 200 primeira linha do webhook
+[33m02278c1[m fix: supabase lazy dentro das funcoes + log webhook
