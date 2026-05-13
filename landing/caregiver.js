@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8082'; // trocar para URL de produção no deploy
+const API_URL = 'https://linaai-production.up.railway.app';
 
 const SEVERITY_BADGE = { low: 'badge-low', medium: 'badge-medium', high: 'badge-high' };
 const DAY_LABELS = { mon: 'Seg', tue: 'Ter', wed: 'Qua', thu: 'Qui', fri: 'Sex', sat: 'Sáb', sun: 'Dom' };
