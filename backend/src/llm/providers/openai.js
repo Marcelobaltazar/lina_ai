@@ -10,11 +10,14 @@ export async function complete(systemPrompt, history, userContent, cfg) {
     { role: 'user', content: userContent },
   ];
 
+  const model = cfg.active_model || 'gpt-4o-mini';
+  const isSearchModel = model.includes('search');
+
   const response = await getClient().chat.completions.create({
-    model:       cfg.active_model || 'gpt-4o-mini',
-    temperature: cfg.temperature  ?? 0.7,
-    max_tokens:  cfg.max_tokens   || 1024,
+    model,
+    max_tokens: cfg.max_tokens || 1024,
     messages,
+    ...(!isSearchModel && { temperature: cfg.temperature ?? 0.7 }),
   });
 
   return { text: response.choices[0].message.content, usage: response.usage };

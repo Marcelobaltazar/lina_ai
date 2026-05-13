@@ -2,8 +2,9 @@ import getSupabase from '../lib/supabase.js';
 import { callLLM } from '../llm/router.js';
 import { parseSentiment } from './sentiment.js';
 import { fetchRelevantMemories } from './memory.js';
+import { needsSearch, searchWeb, formatSearchContext } from './search.js';
 
-export async function processConversation(user, content, newsContext) {
+export async function processConversation(user, content) {
   const supabase = getSupabase();
 
   const { data: llmCfg } = await supabase
@@ -49,8 +50,16 @@ export async function processConversation(user, content, newsContext) {
         .join('\n');
   }
 
-  if (newsContext) {
-    systemPrompt += `\n\n[CONTEXTO DE NOTÍCIAS RECENTES]: ${newsContext}`;
+  const shouldSearch = await needsSearch(content, llmCfg?.active_provider);
+  if (shouldSearch) {
+    console.log('[search] LLM decidiu buscar para:', content.slice(0, 60));
+    const searchResult = await searchWeb(content, llmCfg?.active_provider);
+    if (searchResult) {
+      systemPrompt += formatSearchContext(searchResult);
+      console.log('[search] contexto injetado com sucesso');
+    } else {
+      console.log('[search] busca falhou, continuando sem contexto web');
+    }
   }
 
   const { text: raw } = await callLLM(systemPrompt, historyMessages, content, llmCfg || {});

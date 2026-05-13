@@ -3,7 +3,6 @@ import getSupabase from '../lib/supabase.js';
 import { processConversation } from '../services/conversation.js';
 import { transcribeAudio, generateAudio } from '../services/audio.js';
 import { analyzeImage } from '../services/vision.js';
-import { fetchNews, detectsNewsIntent } from '../services/news.js';
 import { createAlert } from '../services/alerts.js';
 import { extractAndSaveMemories } from '../services/memory.js';
 
@@ -166,19 +165,9 @@ async function processPayload(body) {
       .single();
     if (msgErr) console.error('[evolution] save user msg', msgErr);
 
-    // ── News context ────────────────────────────────────────────────────────
-    let newsContext = null;
-    if (detectsNewsIntent(content)) {
-      try {
-        newsContext = await fetchNews(content, user.city);
-      } catch (err) {
-        console.error('[evolution] fetchNews failed', err);
-      }
-    }
-
     // ── LLM processing ──────────────────────────────────────────────────────
     const { cleanText, sentiment, flagged, flagReason } =
-      await processConversation(user, content, newsContext);
+      await processConversation(user, content);
 
     // ── Save assistant message ──────────────────────────────────────────────
     const { data: asstMsg, error: asstErr } = await supabase
