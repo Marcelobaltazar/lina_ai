@@ -1,6 +1,7 @@
 import getSupabase from '../lib/supabase.js';
 import { callLLM } from '../llm/router.js';
 import { parseSentiment } from './sentiment.js';
+import { fetchRelevantMemories } from './memory.js';
 
 export async function processConversation(user, content, newsContext) {
   const supabase = getSupabase();
@@ -32,12 +33,21 @@ export async function processConversation(user, content, newsContext) {
     .select('role, content')
     .eq('user_id', user.id)
     .order('created_at', { ascending: true })
-    .limit(20);
+    .limit(8);
 
   const historyMessages = (history || []).map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
+  const memories = await fetchRelevantMemories(user.id, content);
+  if (memories.length > 0) {
+    systemPrompt +=
+      `\n\nMEMÓRIAS RELEVANTES DE ${user.name || 'amigo(a)'} (use naturalmente só se fizer sentido):\n` +
+      memories
+        .map((m) => `- [${new Date(m.recorded_at).toLocaleDateString('pt-BR')}] ${m.content}. ${m.context || ''}`)
+        .join('\n');
+  }
 
   if (newsContext) {
     systemPrompt += `\n\n[CONTEXTO DE NOTÍCIAS RECENTES]: ${newsContext}`;

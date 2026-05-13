@@ -5,6 +5,7 @@ import { transcribeAudio, generateAudio } from '../services/audio.js';
 import { analyzeImage } from '../services/vision.js';
 import { fetchNews, detectsNewsIntent } from '../services/news.js';
 import { createAlert } from '../services/alerts.js';
+import { extractAndSaveMemories } from '../services/memory.js';
 
 const PAYWALL_MSG =
   'Você atingiu o limite de 15 mensagens gratuitas. 😊 Para continuar conversando comigo, assine um plano: [link]';
@@ -194,6 +195,22 @@ async function processPayload(body) {
       .select()
       .single();
     if (asstErr) console.error('[evolution] save assistant msg', asstErr);
+
+    // ── Memory extraction (background, non-blocking) ────────────────────────
+    supabase
+      .from('msg_conversations')
+      .select('role, content')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(8)
+      .then(({ data: recent }) => {
+        const recentMessages = (recent || []).reverse().map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+        return extractAndSaveMemories(user.id, recentMessages);
+      })
+      .catch((err) => console.error('[memory] erro extração:', err.message));
 
     // ── Alert ───────────────────────────────────────────────────────────────
     if (flagged) {
