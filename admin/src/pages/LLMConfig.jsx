@@ -38,16 +38,22 @@ export default function LLMConfig() {
   useEffect(() => { loadConfig(); }, []);
 
   async function loadConfig() {
-    const { data } = await supabase.from('cfg_llm_config').select('*').limit(1).maybeSingle();
-    const defaults = {
-      active_provider: 'claude',
-      active_model: 'claude-sonnet-4-6',
-      temperature: 0.7,
-      max_tokens: 1024,
-      system_prompt: '',
+    const { data } = await supabase
+      .from('cfg_llm_config')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const merged = {
+      active_provider: data?.active_provider || 'claude',
+      active_model:    data?.active_model    || 'claude-sonnet-4-6',
+      temperature:     Number(data?.temperature)  || 0.7,
+      max_tokens:      Number(data?.max_tokens)   || 1024,
+      system_prompt:   data?.system_prompt   || '',
     };
-    const merged = { ...defaults, ...(data || {}) };
-    setCfg(merged);
+
+    setCfg(data ? { ...data, ...merged } : merged);
     setForm(merged);
     setLoading(false);
   }
@@ -184,13 +190,20 @@ export default function LLMConfig() {
 
           <div className="form-group">
             <label className="form-label">System Prompt</label>
-            <textarea
-              className="form-control"
-              value={form.system_prompt}
-              onChange={(e) => set('system_prompt', e.target.value)}
-              placeholder="Instrução de sistema enviada a cada conversa..."
-              style={{ minHeight: 280 }}
-            />
+            {loading ? (
+              <div className="form-control" style={{ minHeight: 280, color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
+                Carregando...
+              </div>
+            ) : (
+              <textarea
+                key={form.system_prompt ? 'loaded' : 'empty'}
+                className="form-control"
+                defaultValue={form.system_prompt}
+                onChange={(e) => set('system_prompt', e.target.value)}
+                placeholder="Instrução de sistema enviada a cada conversa..."
+                style={{ minHeight: 280 }}
+              />
+            )}
           </div>
 
           <button type="submit" className="btn btn-primary" disabled={saving}>
