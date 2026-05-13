@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase.js';
+import { supabase, API_URL } from '../lib/supabase.js';
 
 const PAGE_SIZE = 20;
-const BACKEND   = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8082';
 
 const STATUS_COLORS = {
   active: 'badge-green', trial: 'badge-blue',
@@ -78,7 +77,7 @@ export default function Users() {
 
     try {
       const res = await fetch(
-        `${BACKEND}/caregiver/${relatives[0].id}/generate-token`,
+        `${API_URL}/caregiver/setup/${relatives[0].id}/generate-token`,
         { method: 'POST' },
       );
       const json = await res.json();

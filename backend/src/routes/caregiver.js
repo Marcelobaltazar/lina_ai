@@ -69,6 +69,37 @@ async function getWeekStats(elderId) {
   };
 }
 
+// ── POST /caregiver/setup/:relativeId/generate-token (sem auth) ───────────────
+router.post('/setup/:relativeId/generate-token', async (req, res) => {
+  try {
+    const supabase = getSupabase();
+    const { relativeId } = req.params;
+
+    const { data: relative } = await supabase
+      .from('fam_relatives')
+      .select('id')
+      .eq('id', relativeId)
+      .maybeSingle();
+
+    if (!relative) return res.status(404).json({ error: 'Familiar não encontrado' });
+
+    const token = randomUUID();
+
+    const { error } = await supabase
+      .from('fam_relatives')
+      .update({ access_token: token, token_created_at: new Date().toISOString() })
+      .eq('id', relativeId);
+
+    if (error) throw error;
+
+    const accessUrl = `${process.env.BASE_URL || 'http://localhost:8080'}/cuidador/${token}`;
+    res.json({ accessUrl });
+  } catch (err) {
+    console.error('[caregiver] setup/generate-token', err.message);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
 // ── GET /caregiver/:token ──────────────────────────────────────────────────────
 router.get('/:token', requireToken, async (req, res) => {
   try {
