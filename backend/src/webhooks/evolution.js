@@ -235,10 +235,31 @@ async function processPayload(body) {
       }
     }
 
+    const delayMs = humanDelay(cleanText.length);
+    await sendTypingIndicator(phone, delayMs);
     await sendWhatsAppMessage(phone, cleanText);
   } catch (err) {
     console.error('[webhook] erro:', err.message, err.stack);
   }
+}
+
+function humanDelay(textLength) {
+  const base = Math.min(textLength * 35, 6000);
+  const variation = Math.random() * 2000;
+  return Math.max(1500, base + variation);
+}
+
+async function sendTypingIndicator(phone, delayMs) {
+  try {
+    await axios.post(
+      `${process.env.EVOLUTION_API_URL}/chat/sendPresence/${process.env.EVOLUTION_INSTANCE}`,
+      { number: phone, presence: 'composing', delay: delayMs },
+      { headers: { apikey: process.env.EVOLUTION_API_KEY } },
+    );
+  } catch {
+    // ignora silenciosamente
+  }
+  await new Promise((r) => setTimeout(r, delayMs));
 }
 
 async function sendWhatsAppMessage(phone, text) {
