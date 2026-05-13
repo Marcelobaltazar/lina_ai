@@ -3,6 +3,31 @@ import { supabase } from '../lib/supabase.js';
 
 const PROVIDERS = ['claude', 'openai', 'gemini'];
 
+const SUGGESTED_MODELS = {
+  openai: [
+    { id: 'gpt-4o',                label: 'GPT-4o',          tag: 'Recomendado' },
+    { id: 'gpt-4o-search-preview', label: 'GPT-4o Search',   tag: 'Com busca web' },
+    { id: 'gpt-4o-mini',           label: 'GPT-4o Mini',     tag: 'Econômico' },
+  ],
+  claude: [
+    { id: 'claude-sonnet-4-20250514',   label: 'Claude Sonnet 4', tag: 'Recomendado' },
+    { id: 'claude-opus-4-20250514',     label: 'Claude Opus 4',   tag: 'Mais poderoso' },
+    { id: 'claude-haiku-4-5-20251001',  label: 'Claude Haiku',    tag: 'Econômico' },
+  ],
+  gemini: [
+    { id: 'gemini-2.0-flash',        label: 'Gemini 2.0 Flash',  tag: 'Recomendado' },
+    { id: 'gemini-2.0-flash-search', label: 'Gemini 2.0 Search', tag: 'Com busca web' },
+    { id: 'gemini-1.5-pro',          label: 'Gemini 1.5 Pro',    tag: 'Mais poderoso' },
+  ],
+};
+
+const TAG_COLORS = {
+  'Recomendado':   { background: '#d1fae5', color: '#065f46' },
+  'Com busca web': { background: '#dbeafe', color: '#1e40af' },
+  'Econômico':     { background: '#f3f4f6', color: '#374151' },
+  'Mais poderoso': { background: '#ede9fe', color: '#5b21b6' },
+};
+
 export default function LLMConfig() {
   const [cfg, setCfg]       = useState(null);
   const [form, setForm]     = useState(null);
@@ -99,6 +124,37 @@ export default function LLMConfig() {
                 onChange={(e) => set('active_model', e.target.value)}
                 placeholder="ex: claude-sonnet-4-6"
               />
+              {SUGGESTED_MODELS[form.active_provider] && (
+                <div style={{ marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Modelos sugeridos:
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {SUGGESTED_MODELS[form.active_provider].map((m) => {
+                      const colors = TAG_COLORS[m.tag] || TAG_COLORS['Econômico'];
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => set('active_model', m.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '4px 10px', borderRadius: 20,
+                            border: '1px solid #e5e7eb', background: '#fff',
+                            cursor: 'pointer', fontSize: 13,
+                            outline: form.active_model === m.id ? '2px solid #065f46' : 'none',
+                          }}
+                        >
+                          {m.label}
+                          <span style={{ ...colors, padding: '1px 7px', borderRadius: 10, fontSize: 11 }}>
+                            {m.tag}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
