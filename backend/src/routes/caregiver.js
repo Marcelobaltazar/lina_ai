@@ -222,9 +222,39 @@ router.put('/:token/medications/:medicationId', requireToken, async (req, res) =
 
     if (!existing) return res.status(404).json({ error: 'Medicamento não encontrado' });
 
+    const {
+      name, generic_name, manufacturer, dosage, form,
+      quantity_per_dose, take_with, purpose,
+      doctor_name, doctor_specialty,
+      start_date, end_date, continuous_use,
+      side_effects, missed_dose, restrictions, notes,
+      times, days,
+    } = req.body;
+
     const { data, error } = await supabase
       .from('med_medications')
-      .update({ ...req.body, updated_at: new Date().toISOString() })
+      .update({
+        ...(name              !== undefined && { name }),
+        generic_name:     generic_name     ?? null,
+        manufacturer:     manufacturer     ?? null,
+        dosage:           dosage           ?? null,
+        form:             form             ?? null,
+        quantity_per_dose: quantity_per_dose ?? null,
+        take_with:        take_with        ?? null,
+        purpose:          purpose          ?? null,
+        doctor_name:      doctor_name      ?? null,
+        doctor_specialty: doctor_specialty ?? null,
+        start_date:       start_date       || null,
+        end_date:         end_date         || null,
+        continuous_use:   continuous_use   ?? false,
+        side_effects:     side_effects     ?? null,
+        missed_dose:      missed_dose      ?? null,
+        restrictions:     restrictions     ?? null,
+        notes:            notes            ?? null,
+        times:            times            ?? null,
+        days:             days             ?? null,
+        updated_at:       new Date().toISOString(),
+      })
       .eq('id', medicationId)
       .select()
       .single();
@@ -232,8 +262,8 @@ router.put('/:token/medications/:medicationId', requireToken, async (req, res) =
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    console.error('[caregiver] PUT /medications/:id', err.message);
-    res.status(500).json({ error: 'Erro interno' });
+    console.error('[caregiver] erro medications PUT:', err.message, err.stack);
+    res.status(500).json({ error: 'Erro interno', detail: err.message });
   }
 });
 
