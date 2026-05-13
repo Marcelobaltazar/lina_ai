@@ -253,7 +253,6 @@ router.put('/:token/medications/:medicationId', requireToken, async (req, res) =
         notes:            notes            ?? null,
         times:            times            ?? null,
         days:             days             ?? null,
-        updated_at:       new Date().toISOString(),
       })
       .eq('id', medicationId)
       .select()
