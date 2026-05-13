@@ -49,20 +49,22 @@ const SENTIMENT_MAP = {
 };
 
 export function parseSentiment(raw) {
-  let text = raw;
+  const sentimentMatch = raw.match(/\[SENTIMENT:\s*([\w|]+)\]/i);
+  const rawSentiment = sentimentMatch ? sentimentMatch[1].split('|')[0].toLowerCase() : 'neutral';
+  const sentiment = SENTIMENT_MAP[rawSentiment] || 'neutral';
 
-  const sentimentMatch = text.match(/\[SENTIMENT:([A-Z_]+)\]/);
-  const rawSentiment = sentimentMatch ? sentimentMatch[1] : null;
-  const sentiment = SENTIMENT_MAP[rawSentiment?.toLowerCase()] || 'neutral';
+  const flagMatch = raw.match(/\[FLAG:\s*(true|false)\]/i);
+  const flagged = flagMatch ? flagMatch[1].toLowerCase() === 'true' : false;
 
-  const flagMatch = text.match(/\[FLAG:([^\]]+)\]/);
-  const flagged = !!flagMatch;
-  const flagReason = flagMatch ? flagMatch[1] : null;
+  const flagReasonMatch = raw.match(/\[FLAG_REASON:\s*(.+?)\]/i);
+  const flagReason = flagReasonMatch ? flagReasonMatch[1].trim() : null;
 
-  // Strip all internal tags before delivering to user
-  const cleanText = text
-    .replace(/\[SENTIMENT:[A-Z_]+\]/g, '')
-    .replace(/\[FLAG:[^\]]+\]/g, '')
+  const cleanText = raw
+    .replace(/\[SENTIMENT:.*?\]/gi, '')
+    .replace(/\[FLAG_REASON:.*?\]/gi, '')
+    .replace(/\[FLAG:.*?\]/gi, '')
+    .replace(/\[SENTIMENT.*?\]/gi, '')
+    .replace(/\[FLAG.*?\]/gi, '')
     .trim();
 
   return { cleanText, sentiment, flagged, flagReason };
