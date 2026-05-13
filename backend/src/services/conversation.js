@@ -4,7 +4,7 @@ import { parseSentiment } from './sentiment.js';
 import { fetchRelevantMemories } from './memory.js';
 import { needsSearch, searchWeb, formatSearchContext } from './search.js';
 
-export async function processConversation(user, content) {
+export async function processConversation(user, content, pendingMedsHint = null) {
   const supabase = getSupabase();
 
   const { data: llmCfg } = await supabase
@@ -49,6 +49,8 @@ export async function processConversation(user, content) {
         .map((m) => `- [${new Date(m.recorded_at).toLocaleDateString('pt-BR')}] ${m.content}. ${m.context || ''}`)
         .join('\n');
   }
+
+  if (pendingMedsHint) systemPrompt += pendingMedsHint;
 
   const shouldSearch = await needsSearch(content, llmCfg?.active_provider);
   if (shouldSearch) {

@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import axios from 'axios';
 import getSupabase from '../lib/supabase.js';
-import { checkAndSendReminders } from '../services/medication.js';
+import { checkAndSendReminders, checkAndResendReminders, markIgnoredReminders } from '../services/medication.js';
 import { sendWeeklyReport } from '../services/email.js';
 import { complete as claudeComplete } from '../llm/providers/claude.js';
 
@@ -9,10 +9,12 @@ import { complete as claudeComplete } from '../llm/providers/claude.js';
 cron.schedule('* * * * *', async () => {
   try {
     await checkAndSendReminders();
+    await checkAndResendReminders();
+    await markIgnoredReminders();
   } catch (err) {
-    console.error('[cron] checkAndSendReminders', err.message);
+    console.error('[cron] medication jobs', err.message);
   }
-});
+}, { timezone: 'America/Sao_Paulo' });
 
 // ── Job 2: Re-engagement — daily at 10:00 (São Paulo) ────────────────────────
 cron.schedule('0 10 * * *', async () => {

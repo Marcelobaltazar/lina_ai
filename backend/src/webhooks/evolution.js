@@ -5,11 +5,13 @@ import { transcribeAudio, generateAudio } from '../services/audio.js';
 import { analyzeImage } from '../services/vision.js';
 import { createAlert } from '../services/alerts.js';
 import { extractAndSaveMemories } from '../services/memory.js';
+import { confirmMedication, getPendingReminders } from '../services/medication.js';
 
-const PAYWALL_MSG =
-  'Você atingiu o limite de 15 mensagens gratuitas. 😊 Para continuar conversando comigo, assine um plano: [link]';
-const TRIAL_WARNING_MSG =
-  'Restam 2 mensagens gratuitas 😊 Para continuar sem interrupções, conheça nossos planos!';
+const trialWarningMsg = (name) =>
+  `${name}, preciso te contar uma coisa! 😊\n\nSou uma IA criada pela ElderlyAgent pra fazer companhia, conversar com você e lembrar seus medicamentos, mas tenho um custo de operação pra funcionar. \n\nNas próximas 2 mensagens meus créditos acabam. Pra continuar nossa conversa sem interrupção, você ou alguém da sua família pode me recarregar rapidinho:\n\n👉 www.elderlyagent.com\n\nÉ simples e rápido. Até lá, estou aqui! 💚`;
+
+const paywallMsg = (name) =>
+  `${name}, por hoje preciso pausar nossa conversa. 😔\n\nMeus créditos acabaram! Mas a gente se fala de novo assim que você ou um familiar fizer a recarga:\n\n👉 www.elderlyagent.com\n\nQualquer dúvida, é só pedir ajuda pra quem você confia. Até logo! 💚`;
 
 export async function evolutionWebhook(req, res) {
   res.sendStatus(200);
@@ -110,7 +112,7 @@ async function processPayload(body) {
     if (user.status === 'blocked') return;
 
     if (user.status === 'trial' && user.free_messages_used >= 15) {
-      await sendWhatsAppMessage(phone, PAYWALL_MSG);
+      await sendWhatsAppMessage(phone, paywallMsg(user.name));
       return;
     }
 
@@ -124,7 +126,7 @@ async function processPayload(body) {
       user = { ...user, free_messages_used: nextCount };
 
       if (nextCount === 13) {
-        await sendWhatsAppMessage(phone, TRIAL_WARNING_MSG);
+        await sendWhatsAppMessage(phone, trialWarningMsg(user.name));
       }
     }
 
@@ -152,6 +154,27 @@ async function processPayload(body) {
 
     if (!content) return;
 
+    // ── Medication confirmation detection ───────────────────────────────────
+    const medResult = await confirmMedication(user.id, content);
+    if (medResult.action === 'confirmed') {
+      await sendWhatsAppMessage(phone,
+        `Ótimo, ${user.name}! Anotei aqui que você tomou o ${medResult.medicationName} ✅💊 Cuide-se!`
+      );
+      return;
+    }
+    if (medResult.action === 'missed_pending') {
+      await sendWhatsAppMessage(phone,
+        `Tudo bem, ${user.name}! Pode acontecer 😊 Mas é importante tomar o ${medResult.medicationName}. Você pode pedir pra alguém te ajudar a lembrar? Quando tomar, me avisa que eu fico na torcida! 💚`
+      );
+      return;
+    }
+    if (medResult.action === 'missed_notified') {
+      await sendWhatsAppMessage(phone,
+        `Que bom que você avisou! 💚 Anotei aqui. Espero que o ${medResult.medicationName} seja tomado logo. Cuide-se!`
+      );
+      return;
+    }
+
     // ── Save user message ───────────────────────────────────────────────────
     const { data: userMsg, error: msgErr } = await supabase
       .from('msg_conversations')
@@ -165,9 +188,15 @@ async function processPayload(body) {
       .single();
     if (msgErr) console.error('[evolution] save user msg', msgErr);
 
+    // ── Pending medication reminders injection ──────────────────────────────
+    const pendingMeds = await getPendingReminders(user.id);
+    const pendingMedsHint = pendingMeds.length > 0 && Math.random() > 0.5
+      ? `\n\nLEMBRETE PENDENTE: ${user.name} esqueceu de tomar ${pendingMeds.join(', ')}. Mencione naturalmente UMA VEZ no meio da conversa, com carinho e sem pressão. Exemplo: 'Ah, e o ${pendingMeds[0]}? Já conseguiu tomar?'`
+      : null;
+
     // ── LLM processing ──────────────────────────────────────────────────────
     const { cleanText, sentiment, flagged, flagReason } =
-      await processConversation(user, content);
+      await processConversation(user, content, pendingMedsHint);
 
     // ── Save assistant message ──────────────────────────────────────────────
     const { data: asstMsg, error: asstErr } = await supabase
