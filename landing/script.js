@@ -1,47 +1,96 @@
 const WHATSAPP_NUMBER = 'WHATSAPP_NUMBER';
-const SHARE_TEXT = 'Conhece a Lina? Uma IA companheira para idosos pelo WhatsApp 💚 https://lina.ai';
-
-// Extra padding so the section title isn't hidden behind the sticky navbar
-const NAV_OFFSET = 64;
-// How many px scrolled before the navbar gets its solid background
-const NAVBAR_SCROLL_THRESHOLD = 50;
 
 function openWhatsApp() {
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=Oi%20Lina!`, '_blank');
+  window.open('https://wa.me/' + WHATSAPP_NUMBER + '?text=Oi%20Lina!', '_blank');
 }
 
 function shareWhatsApp() {
-  window.open(`https://wa.me/?text=${encodeURIComponent(SHARE_TEXT)}`, '_blank');
+  const text = 'Conhece a Lina? Companhia de IA para idosos pelo WhatsApp 💚 https://elderlyagent.com';
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-  const navbar = document.getElementById('navbar');
+// ── Navbar scroll ─────────────────────────────────────────────────────────────
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 80);
+}, { passive: true });
 
-  // Solid navbar background after scrolling past the hero fold
-  window.addEventListener('scroll', function () {
-    navbar.classList.toggle('scrolled', window.scrollY > NAVBAR_SCROLL_THRESHOLD);
-  }, { passive: true });
+// ── GSAP hero animation ───────────────────────────────────────────────────────
+if (window.gsap) {
+  gsap.from('.hero-tag',   { opacity: 0, y: 20, duration: 0.7, delay: 0.2 });
+  gsap.from('.hero-title', { opacity: 0, y: 30, duration: 0.8, delay: 0.4 });
+  gsap.from('.hero-sub',   { opacity: 0, y: 20, duration: 0.7, delay: 0.6 });
+  gsap.from('.hero-btns',  { opacity: 0, y: 20, duration: 0.7, delay: 0.8 });
+  gsap.from('.hero-badge', { opacity: 0, y: 10, duration: 0.6, delay: 1.0 });
+}
 
-  // Smooth scroll for anchor links, accounting for sticky navbar height
-  document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
-    anchor.addEventListener('click', function (e) {
-      const target = document.querySelector(this.getAttribute('href'));
-      if (!target) return;
-      e.preventDefault();
-      window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - NAV_OFFSET, behavior: 'smooth' });
-    });
+// ── IntersectionObserver ──────────────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    if (!entry.isIntersecting) return;
+    const el = entry.target;
+    const delay = el.dataset.delay || 0;
+    setTimeout(() => el.classList.add('visible'), Number(delay));
+    observer.unobserve(el);
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.animate-section').forEach((el) => observer.observe(el));
+
+// Cards with staggered delay
+document.querySelectorAll('.animate-card').forEach((el, i) => {
+  el.dataset.delay = i * 100;
+  observer.observe(el);
+});
+
+// ── Carousel (testimonials) ───────────────────────────────────────────────────
+const track  = document.getElementById('carousel');
+const dotsEl = document.getElementById('carousel-dots');
+
+if (track && dotsEl) {
+  const cards = track.querySelectorAll('.t-card');
+  const total = cards.length;
+  let current = 0;
+  let timer;
+
+  // Build dots
+  cards.forEach((_, i) => {
+    const btn = document.createElement('button');
+    btn.addEventListener('click', () => goTo(i));
+    dotsEl.appendChild(btn);
   });
 
-  // Fade-in sections as they enter the viewport
-  const observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
+  function updateDots() {
+    dotsEl.querySelectorAll('button').forEach((b, i) => {
+      b.classList.toggle('active', i === current);
     });
-  }, { threshold: 0.1 });
+  }
 
-  document.querySelectorAll('.reveal').forEach(function (el) {
-    observer.observe(el);
+  function goTo(index) {
+    current = index;
+    const cardW = cards[0].offsetWidth + 24; // gap 24px
+    track.style.transform = `translateX(-${current * cardW}px)`;
+    updateDots();
+  }
+
+  function next() { goTo((current + 1) % total); }
+
+  function startTimer() { timer = setInterval(next, 4000); }
+  function stopTimer()  { clearInterval(timer); }
+
+  track.parentElement.addEventListener('mouseenter', stopTimer);
+  track.parentElement.addEventListener('mouseleave', startTimer);
+
+  updateDots();
+  startTimer();
+}
+
+// ── Smooth scroll for anchor links ────────────────────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    const target = document.querySelector(link.getAttribute('href'));
+    if (!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: 'smooth' });
   });
 });

@@ -3,292 +3,308 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lina — Companheira pelo WhatsApp para adultos 50+</title>
-  <meta name="description" content="A Lina conversa, lembra de remédios e manda relatórios para a família. Tudo pelo WhatsApp, sem precisar aprender nada novo." />
+  <title>Lina.ai — Companhia e cuidado para adultos 50+ pelo WhatsApp</title>
+  <meta name="description" content="A Lina conversa, lembra remédios, lê imagens e envia relatórios para sua família — tudo pelo WhatsApp." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════
-     NAVBAR
-═══════════════════════════════════════════════════ -->
+<!-- NAVBAR -->
 <nav class="navbar" id="navbar">
-  <a href="#" class="nav-logo">Lina<span class="logo-dot">.ai</span></a>
-  <div class="nav-links">
-    <a href="#como-funciona">Como funciona</a>
-    <a href="#planos">Planos</a>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">💚 ElderlyAgent</a>
+    <ul class="nav-links">
+      <li><a href="#como-funciona">Como funciona</a></li>
+      <li><a href="#familias">Para famílias</a></li>
+      <li><a href="#planos">Planos</a></li>
+    </ul>
+    <button class="btn-nav" onclick="openWhatsApp()">Falar com a Lina</button>
   </div>
-  <button class="btn-primary nav-cta" onclick="openWhatsApp()">Falar com a Lina</button>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════
-     HERO
-═══════════════════════════════════════════════════ -->
-<section class="hero">
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-overlay"></div>
   <div class="hero-content">
-    <span class="tag">Para adultos 50+ e idosos</span>
-    <h1>Uma companheira sempre pronta pra conversar</h1>
-    <p class="hero-sub">Mensagens de texto, áudio e fotos. Lembretes de medicamentos. Companhia 24h. Tudo pelo WhatsApp — sem precisar aprender nada novo.</p>
-    <div class="hero-actions">
-      <button class="btn-primary" onclick="openWhatsApp()">Converse agora com a Lina</button>
-      <button class="btn-outline" onclick="shareWhatsApp()">Compartilhe com um familiar</button>
+    <span class="hero-tag">COMPANHIA PARA ADULTOS 50+</span>
+    <h1 class="hero-title">Cuidado e companhia<br>onde sua família mais precisa</h1>
+    <p class="hero-sub">A Lina conversa, lembra remédios, lê imagens e envia relatórios para sua família — tudo pelo WhatsApp.</p>
+    <div class="hero-btns">
+      <button class="btn-hero-primary" onclick="openWhatsApp()">Falar com a Lina agora</button>
+      <a href="#como-funciona" class="btn-hero-outline">Como funciona</a>
     </div>
-    <p class="social-proof">💚 Mais de 800 famílias já usam a Lina</p>
+    <div class="hero-badge">💚 Mais de 800 famílias já usam a Lina</div>
   </div>
+</section>
 
-  <div class="hero-mockup">
-    <div class="wpp-phone">
+<!-- FEATURES -->
+<section class="features" id="como-funciona">
+  <div class="container">
+    <div class="features-grid">
+      <div class="feature-card animate-card">
+        <div class="feature-icon">📱</div>
+        <h3>No WhatsApp</h3>
+        <p>Sem baixar nada novo. Só mandar mensagem.</p>
+      </div>
+      <div class="feature-card animate-card">
+        <div class="feature-icon">🗣️</div>
+        <h3>Voz ou texto</h3>
+        <p>Do jeito que ela preferir.</p>
+      </div>
+      <div class="feature-card animate-card">
+        <div class="feature-icon">💊</div>
+        <h3>Lembretes</h3>
+        <p>Remédio no horário certo.</p>
+      </div>
+      <div class="feature-card animate-card">
+        <div class="feature-icon">📊</div>
+        <h3>Relatórios</h3>
+        <p>Família sempre informada.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MOCKUP WHATSAPP -->
+<section class="mockup-section" id="familias">
+  <div class="container mockup-inner">
+    <div class="mockup-text animate-section">
+      <span class="section-tag">POR QUE A LINA</span>
+      <h2 class="serif">A companheira que sua família merece</h2>
+      <ul class="check-list">
+        <li><span>✅</span> Conversa como uma amiga de verdade</li>
+        <li><span>✅</span> Lembra de remédios todos os dias</li>
+        <li><span>✅</span> Entende fotos, receitas e exames</li>
+        <li><span>✅</span> Relatório semanal para a família</li>
+        <li><span>✅</span> Disponível 24h, 7 dias por semana</li>
+      </ul>
+      <button class="btn-primary" onclick="openWhatsApp()">Começar gratuitamente →</button>
+    </div>
+
+    <div class="wpp-mockup animate-section">
       <div class="wpp-header">
         <div class="wpp-avatar">L</div>
-        <div class="wpp-info">
-          <span class="wpp-name">Lina</span>
-          <span class="wpp-status">online agora</span>
+        <div>
+          <div class="wpp-name">Lina</div>
+          <div class="wpp-status">online</div>
         </div>
       </div>
       <div class="wpp-body">
-        <div class="wpp-msg wpp-out msg-d0">
-          <span>Oi Lina! Tudo bem?</span>
-          <span class="wpp-time">09:14 ✓✓</span>
-        </div>
-        <div class="wpp-msg wpp-in msg-d1">
-          <span>Oi, Dona Maria! Tudo ótimo! Como você está hoje? 😊</span>
-          <span class="wpp-time">09:14</span>
-        </div>
-        <div class="wpp-msg wpp-in msg-d2">
-          <div class="wpp-audio">
-            <div class="wpp-audio-icon">▶</div>
-            <div class="wpp-audio-bar">
-              <div class="wpp-audio-progress"></div>
-            </div>
-            <span class="wpp-audio-time">0:04</span>
-          </div>
-          <span class="wpp-time">09:15</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════
-     LOGOS
-═══════════════════════════════════════════════════ -->
-<section class="logos reveal">
-  <p class="logos-label">Tecnologia desenvolvida com os melhores modelos de IA do mundo</p>
-  <div class="logos-row">
-    <span>OpenAI</span>
-    <span>Claude</span>
-    <span>Gemini</span>
-    <span>Anthropic</span>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════
-     POR QUE É ESPECIAL
-═══════════════════════════════════════════════════ -->
-<section class="features reveal" id="features">
-  <div class="section-inner">
-    <h2 class="section-title">Por que a Lina é diferente?</h2>
-    <div class="features-grid">
-      <div class="feature-card">
-        <span class="feature-icon">📱</span>
-        <h3>No WhatsApp</h3>
-        <p>Não precisa baixar nada. Ela chega onde você já está.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">🗣️</span>
-        <h3>Voz ou texto</h3>
-        <p>Pode mandar áudio que ela entende e responde.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">📸</span>
-        <h3>Entende fotos</h3>
-        <p>Manda a foto de uma planta, receita ou exame.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">💊</span>
-        <h3>Lembra remédios</h3>
-        <p>Avisa no horário certo, todo dia, com carinho.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════
-     PARA FILHOS E CUIDADORES
-═══════════════════════════════════════════════════ -->
-<section class="family reveal">
-  <div class="section-inner family-inner">
-    <div class="family-text">
-      <h2>Para você que se preocupa<br>com quem ama</h2>
-      <p>A Lina não substitui a família — ela cuida nos intervalos. Para que você durma tranquilo.</p>
-      <ul class="benefit-list">
-        <li><span class="check">✅</span> Relatório semanal por e-mail com resumo das conversas</li>
-        <li><span class="check">✅</span> Alertas discretos se detectar sinais de tristeza ou solidão</li>
-        <li><span class="check">✅</span> Companhia quando você não pode estar presente</li>
-        <li><span class="check">✅</span> Lembretes de medicamentos com confirmação</li>
-      </ul>
-    </div>
-    <div class="family-email-card">
-      <div class="email-header">
-        <div class="email-dots">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-yellow"></span>
-          <span class="dot dot-green"></span>
-        </div>
-      </div>
-      <div class="email-body">
-        <p class="email-from">Lina.ai <span class="email-addr">&lt;ola@lina.ai&gt;</span></p>
-        <p class="email-subject">Resumo semanal da Dona Maria 💚</p>
-        <hr class="email-divider" />
-        <p class="email-greeting">Olá, Carlos!</p>
-        <p class="email-text">Aqui está o resumo da semana da sua mãe.</p>
-        <div class="email-stats">
-          <div class="email-stat">
-            <span class="email-stat-val">32</span>
-            <span class="email-stat-lbl">mensagens</span>
-          </div>
-          <div class="email-stat">
-            <span class="email-stat-val">5</span>
-            <span class="email-stat-lbl">dias ativos</span>
-          </div>
-          <div class="email-stat">
-            <span class="email-stat-val">✅</span>
-            <span class="email-stat-lbl">remédios</span>
+        <div class="wpp-msg wpp-out wpp-delay-1">Oi Lina! Tudo bem? 😊</div>
+        <div class="wpp-msg wpp-in wpp-delay-2">Oi, Dona Maria! Tudo ótimo! Hoje você tem fisioterapia às 15h, te aviso às 14h 😊</div>
+        <div class="wpp-msg wpp-in wpp-delay-3">
+          <div class="audio-bar">
+            <span class="audio-play">▶</span>
+            <span class="audio-wave">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </span>
+            <span class="audio-time">0:08</span>
           </div>
         </div>
-        <p class="email-summary">"Foi uma semana animada! Dona Maria falou sobre as plantas do jardim e perguntou sobre o neto. 🌿"</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════
-     COMO FUNCIONA
-═══════════════════════════════════════════════════ -->
-<section class="how reveal" id="como-funciona">
-  <div class="section-inner">
-    <h2 class="section-title">Tão simples quanto mandar uma mensagem</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>Salve o contato da Lina no celular</h3>
-        <p>Um número de WhatsApp, como qualquer amigo.</p>
+<!-- SERVIÇOS -->
+<section class="services" id="servicos">
+  <div class="container">
+    <h2 class="serif section-title animate-section">O que a Lina faz por você</h2>
+    <div class="services-grid">
+      <div class="service-card animate-card">
+        <div class="service-icon">💬</div>
+        <h3>Companhia 24h</h3>
+        <p>Bate-papo leve e atencioso, sempre pronta para ouvir.</p>
+        <a class="service-link" href="#" onclick="openWhatsApp(); return false">Saiba mais →</a>
       </div>
-      <div class="step-arrow">→</div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>Mande um "Oi, Lina!" no WhatsApp</h3>
-        <p>Nenhum app pra baixar, nenhuma senha pra criar.</p>
+      <div class="service-card animate-card">
+        <div class="service-icon">💊</div>
+        <h3>Lembretes de remédio</h3>
+        <p>Avisa no horário certo e registra quando tomou.</p>
+        <a class="service-link" href="#" onclick="openWhatsApp(); return false">Saiba mais →</a>
       </div>
-      <div class="step-arrow">→</div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>Ela se apresenta e começa a conversar</h3>
-        <p>Simples assim. A Lina cuida do resto.</p>
+      <div class="service-card animate-card">
+        <div class="service-icon">📸</div>
+        <h3>Lê imagens</h3>
+        <p>Manda foto de exame, receita ou planta — ela explica.</p>
+        <a class="service-link" href="#" onclick="openWhatsApp(); return false">Saiba mais →</a>
+      </div>
+      <div class="service-card animate-card">
+        <div class="service-icon">📰</div>
+        <h3>Notícias do dia</h3>
+        <p>Resumos de portais confiáveis, sem fake news.</p>
+        <a class="service-link" href="#" onclick="openWhatsApp(); return false">Saiba mais →</a>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════
-     PLANOS
-═══════════════════════════════════════════════════ -->
-<section class="pricing reveal" id="planos">
-  <div class="section-inner">
-    <h2 class="section-title">Comece grátis, continue com carinho</h2>
-    <div class="pricing-grid">
+<!-- SOBRE -->
+<section class="about" id="sobre">
+  <div class="container about-inner">
+    <div class="about-img-wrap animate-section">
+      <img
+        src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&q=80"
+        alt="Idosa sorrindo com celular"
+        class="about-img"
+      />
+      <div class="about-badge">800+ famílias atendidas</div>
+    </div>
+    <div class="about-text animate-section">
+      <span class="section-tag">QUEM SOMOS</span>
+      <h2 class="serif">Tecnologia com coração para quem você ama</h2>
+      <p>A ElderlyAgent nasceu da vontade de trazer mais autonomia, segurança e companhia para adultos 50+. A Lina é nossa agente de IA — humanizada, empática e sempre disponível pelo WhatsApp.</p>
+      <a class="btn-link" href="#" onclick="openWhatsApp(); return false">Conheça nossa história →</a>
+    </div>
+  </div>
+</section>
 
-      <div class="plan-card">
-        <div class="plan-name">Grátis</div>
-        <div class="plan-price"><span class="plan-amount">R$ 0</span></div>
+<!-- DEPOIMENTOS -->
+<section class="testimonials">
+  <div class="container">
+    <h2 class="serif section-title white animate-section">O que as famílias dizem</h2>
+    <div class="carousel-wrap">
+      <div class="carousel-track" id="carousel">
+        <div class="t-card">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p>"Minha mãe se sente menos sozinha desde que conheceu a Lina. É incrível como ela conversa de forma natural."</p>
+          <div class="t-author">
+            <div class="t-avatar">A</div>
+            <div><strong>Ana C.</strong><br><small>Filha de usuária</small></div>
+          </div>
+        </div>
+        <div class="t-card">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p>"Os lembretes de remédio salvaram meu pai várias vezes. Agora ele não esquece mais."</p>
+          <div class="t-author">
+            <div class="t-avatar">R</div>
+            <div><strong>Roberto M.</strong><br><small>Filho de usuário</small></div>
+          </div>
+        </div>
+        <div class="t-card">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p>"O relatório semanal me deixa tranquila mesmo morando longe. Sei exatamente como ela está."</p>
+          <div class="t-author">
+            <div class="t-avatar">C</div>
+            <div><strong>Carla S.</strong><br><small>Filha de usuária</small></div>
+          </div>
+        </div>
+        <div class="t-card">
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+          <p>"Nunca imaginei que minha avó de 78 anos ia adorar conversar com uma IA. Ela pergunta por ela todo dia!"</p>
+          <div class="t-author">
+            <div class="t-avatar">L</div>
+            <div><strong>Lucas P.</strong><br><small>Neto de usuária</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="carousel-dots" id="carousel-dots"></div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<section class="marquee-section">
+  <p class="marquee-title">Tecnologia desenvolvida com os melhores modelos de IA</p>
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <span>OpenAI</span><span>Claude</span><span>Gemini</span><span>Anthropic</span><span>WhatsApp</span>
+      <span>OpenAI</span><span>Claude</span><span>Gemini</span><span>Anthropic</span><span>WhatsApp</span>
+    </div>
+  </div>
+</section>
+
+<!-- PLANOS -->
+<section class="plans" id="planos">
+  <div class="container">
+    <h2 class="serif section-title animate-section">Comece grátis, continue com carinho</h2>
+    <div class="plans-grid">
+      <div class="plan-card animate-card">
+        <h3>Grátis</h3>
+        <div class="plan-price">R$ 0</div>
         <p class="plan-desc">15 mensagens para experimentar</p>
         <ul class="plan-features">
-          <li>✓ Conversa por texto</li>
+          <li>✓ Conversa com a Lina</li>
           <li>✓ Sem cadastro</li>
-          <li>✓ Começa agora</li>
+          <li>✓ Só no WhatsApp</li>
         </ul>
-        <button class="btn-outline plan-cta" onclick="openWhatsApp()">Experimentar agora</button>
+        <button class="btn-plan-outline" onclick="openWhatsApp()">Experimentar agora</button>
       </div>
-
-      <div class="plan-card plan-popular">
+      <div class="plan-card featured animate-card">
         <div class="plan-badge">Mais popular</div>
-        <div class="plan-name">Mensal</div>
-        <div class="plan-price"><span class="plan-amount">R$ 29,90</span><span class="plan-period">/mês</span></div>
-        <p class="plan-desc">Tudo ilimitado, com carinho</p>
+        <h3>Mensal</h3>
+        <div class="plan-price">R$ 29<span class="plan-cents">,90/mês</span></div>
+        <p class="plan-desc">Companhia ilimitada todo mês</p>
         <ul class="plan-features">
           <li>✓ Mensagens ilimitadas</li>
-          <li>✓ Áudio e fotos</li>
-          <li>✓ Lembretes de remédios</li>
-          <li>✓ Relatório para a família</li>
-          <li>✓ Alertas de bem-estar</li>
+          <li>✓ Lembretes de remédio</li>
+          <li>✓ Leitura de imagens</li>
+          <li>✓ Notícias do dia</li>
+          <li>✓ Relatório para família</li>
         </ul>
-        <button class="btn-primary plan-cta" onclick="openWhatsApp()">Assinar agora</button>
+        <button class="btn-plan-primary" onclick="openWhatsApp()">Assinar agora</button>
       </div>
-
-      <div class="plan-card">
-        <div class="plan-savings">Economize R$ 109/ano</div>
-        <div class="plan-name">Anual</div>
-        <div class="plan-price">
-          <span class="plan-amount">R$ 249</span><span class="plan-period">/ano</span>
-        </div>
-        <p class="plan-desc">R$ 20,75 por mês, tudo incluso</p>
+      <div class="plan-card animate-card">
+        <div class="plan-badge green">Melhor valor</div>
+        <h3>Anual</h3>
+        <div class="plan-price">R$ 249<span class="plan-cents">/ano</span></div>
+        <p class="plan-desc">Economia de R$ 110 no ano</p>
         <ul class="plan-features">
-          <li>✓ Tudo do plano Mensal</li>
+          <li>✓ Tudo do plano mensal</li>
           <li>✓ Prioridade no suporte</li>
-          <li>✓ Sem renovação mensal</li>
+          <li>✓ Portal do cuidador</li>
+          <li>✓ Acesso para 2 familiares</li>
         </ul>
-        <button class="btn-outline plan-cta" onclick="openWhatsApp()">Melhor valor</button>
+        <button class="btn-plan-outline" onclick="openWhatsApp()">Melhor custo</button>
       </div>
-
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════
-     CTA FINAL
-═══════════════════════════════════════════════════ -->
-<section class="cta-final reveal">
-  <h2>Comece hoje. A primeira conversa é gratuita.</h2>
-  <p>Sem cadastro, sem cartão, sem baixar nada.</p>
-  <div class="cta-actions">
-    <button class="btn-white" onclick="openWhatsApp()">Converse com a Lina</button>
-    <button class="btn-white-outline" onclick="shareWhatsApp()">Envie para um familiar</button>
+<!-- CTA FINAL -->
+<section class="cta-final">
+  <div class="cta-overlay"></div>
+  <div class="cta-content animate-section">
+    <h2 class="serif">Comece hoje.<br>A primeira conversa é gratuita.</h2>
+    <p>Sua família merece tranquilidade. A Lina está pronta para começar agora.</p>
+    <div class="hero-btns">
+      <button class="btn-hero-primary" onclick="openWhatsApp()">Falar com a Lina</button>
+      <button class="btn-hero-outline" onclick="shareWhatsApp()">Compartilhar com um familiar</button>
+    </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════════════
-     FOOTER
-═══════════════════════════════════════════════════ -->
+<!-- FOOTER -->
 <footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <span class="nav-logo">Lina<span class="logo-dot">.ai</span></span>
-      <p>© 2025 Lina.ai — Companhia com cuidado.</p>
+  <div class="container footer-inner">
+    <div class="footer-col">
+      <div class="footer-logo">💚 ElderlyAgent</div>
+      <p>Companhia, cuidado e autonomia para adultos 50+ pelo WhatsApp.</p>
     </div>
-    <div class="footer-links">
-      <a href="#">Termos de uso</a>
-      <a href="#">Privacidade</a>
+    <div class="footer-col">
+      <h4>Links</h4>
+      <ul>
+        <li><a href="#como-funciona">Como funciona</a></li>
+        <li><a href="#familias">Para famílias</a></li>
+        <li><a href="#planos">Planos</a></li>
+        <li><a href="#sobre">Sobre</a></li>
+      </ul>
     </div>
-    <div class="footer-social">
-      <!-- Instagram -->
-      <a href="#" aria-label="Instagram" class="social-link">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/>
-        </svg>
-      </a>
-      <!-- WhatsApp -->
-      <a href="#" aria-label="WhatsApp" class="social-link" onclick="openWhatsApp(); return false;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l5.09-1.34A9.94 9.94 0 0012 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm4.93 13.42c-.2.57-1.17 1.09-1.63 1.16-.42.06-.96.09-1.54-.1-.36-.12-.82-.28-1.4-.54-2.46-1.06-4.07-3.54-4.2-3.7-.12-.17-.97-1.29-.97-2.46 0-1.17.61-1.74.83-1.98.22-.24.48-.3.64-.3h.46c.15 0 .35-.06.55.42l.7 1.85c.06.16.03.34-.06.48l-.4.52c-.1.12-.2.25-.09.49.34.73.9 1.4 1.53 1.93.66.56 1.37.93 1.65 1.03.24.09.38.07.52-.04l.43-.51c.15-.18.3-.14.5-.08l1.78.84c.2.1.33.14.38.22.05.34-.12.98-.3 1.31z"/>
-        </svg>
-      </a>
+    <div class="footer-col">
+      <h4>Contato</h4>
+      <p><a href="#" onclick="openWhatsApp()">Falar com a Lina</a></p>
+      <p>oi@elderlyagent.com</p>
+      <p>São Paulo, Brasil</p>
     </div>
   </div>
+  <div class="footer-copy">ElderlyAgent © 2025 · Lina.ai · Companhia com cuidado</div>
 </footer>
 
-<script src="script.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="./script.js"></script>
 </body>
 </html>
