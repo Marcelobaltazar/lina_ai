@@ -6,6 +6,7 @@ import { analyzeImage } from '../services/vision.js';
 import { createAlert } from '../services/alerts.js';
 import { extractAndSaveMemories } from '../services/memory.js';
 import { confirmMedication, getPendingReminders } from '../services/medication.js';
+import { handleMedicationFlow } from '../services/medicationFlow.js';
 
 const trialWarningMsg = (name) =>
   `${name}, que bom que você está aqui! 😊 \n\nSó pra te avisar — nossas mensagens gratuitas \nestão quase no fim. Mas não se preocupe, \ncontinuar é muito simples!\n\nMe manda "quero continuar" quando quiser \ne eu te explico tudo 💚`;
@@ -185,8 +186,29 @@ async function processPayload(body) {
       return;
     }
 
+    // ── Medication reminder flow (conversational) ───────────────────────────
+    const medResponse = await handleMedicationFlow(user, content);
+    if (medResponse) {
+      await supabase.from('msg_conversations').insert({
+        user_id: user.id,
+        role: 'user',
+        content,
+        media_type: 'text',
+      });
+      await supabase.from('msg_conversations').insert({
+        user_id: user.id,
+        role: 'assistant',
+        content: medResponse,
+        media_type: 'text',
+        sentiment: 'happy',
+        flagged: false,
+      });
+      await sendWhatsAppMessage(phone, medResponse);
+      return;
+    }
+
     // ── Save user message ───────────────────────────────────────────────────
-    const { data: userMsg, error: msgErr } = await supabase
+    const { error: msgErr } = await supabase
       .from('msg_conversations')
       .insert({
         user_id: user.id,
