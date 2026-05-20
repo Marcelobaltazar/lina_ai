@@ -1,15 +1,5 @@
 import getSupabase from '../lib/supabase.js';
 
-const INTENT_KEYWORDS = [
-  'remédio', 'remedio', 'remedinho', 'comprimido', 'cápsula', 'capsula',
-  'pressão', 'diabetes', 'coração', 'insulina', 'medicamento',
-  'me lembra', 'me lembre', 'lembrar de tomar', 'lembrete',
-];
-
-const CANCEL_KEYWORDS = [
-  'cancela', 'cancelar', 'não quero', 'nao quero', 'para', 'esquece', 'desiste',
-];
-
 const WORD_NUMBERS = {
   uma: 1, um: 1, duas: 2, dois: 2, três: 3, tres: 3, quatro: 4, cinco: 5,
   seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12,
@@ -111,7 +101,7 @@ export function parseDays(text) {
   return ALL_DAYS;
 }
 
-function formatTimesForDisplay(times) {
+export function formatTimesForDisplay(times) {
   return times
     .map((t) => {
       const [h, m] = t.split(':');
@@ -122,57 +112,10 @@ function formatTimesForDisplay(times) {
     .join(' e ');
 }
 
-function extractMedName(text) {
-  const t = normalize(text);
-  const patterns = [
-    /me lembr[ae] (?:de tomar |de |do |da |o |a )?(.+?)(?:\s+(?:as|às|todo|todos|de manhã|de tarde|de noite|sempre|por favor)|$)/,
-    /lembrar de tomar (?:o |a )?(.+?)(?:\s+(?:as|às|todo|todos|sempre)|$)/,
-    /lembrete (?:de |do |da )?(.+?)(?:\s+(?:as|às|todo|todos|sempre)|$)/,
-    /tomar (?:o |a )?(.+?)(?:\s+(?:as|às|todo|todos|sempre)|$)/,
-  ];
-  for (const p of patterns) {
-    const m = t.match(p);
-    if (m && m[1]) {
-      const name = m[1].trim().replace(/\s+/g, ' ');
-      if (name.length >= 3 && name.length <= 60) return name;
-    }
-  }
-
-  const noun = t.match(/(remédio da pressão|remedio da pressao|remédio do coração|remedio do coracao|remédio do diabetes|remedio do diabetes|remédio da diabetes|remedio da diabetes|remedinho|remédio|remedio|comprimido|cápsula|capsula|insulina|medicamento)/);
-  if (noun) return noun[1];
-
-  return 'seu remédio';
-}
-
 export async function handleMedicationFlow(user, content) {
   const supabase = getSupabase();
-  const msg = normalize(content);
-  if (!msg) return null;
-
   const state = user.med_flow || null;
-
-  if (state && CANCEL_KEYWORDS.some((kw) => msg.includes(kw))) {
-    await supabase.from('cus_users').update({ med_flow: null }).eq('id', user.id);
-    return 'Tudo bem! Se quiser um lembrete depois é só me falar 😊';
-  }
-
-  if (!state) {
-    const hasIntent = INTENT_KEYWORDS.some((kw) => msg.includes(kw));
-    if (!hasIntent) return null;
-
-    const name = extractMedName(content);
-    const time = parseTime(content);
-
-    if (time) {
-      const flow = { step: 'awaiting_days', name, times: [time] };
-      await supabase.from('cus_users').update({ med_flow: flow }).eq('id', user.id);
-      return 'É todo dia ou só alguns dias da semana? 😊';
-    }
-
-    const flow = { step: 'awaiting_time', name };
-    await supabase.from('cus_users').update({ med_flow: flow }).eq('id', user.id);
-    return `Claro! 💊 Que horas você toma ${name}?`;
-  }
+  if (!state) return null;
 
   if (state.step === 'awaiting_time') {
     const time = parseTime(content);

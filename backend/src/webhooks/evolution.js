@@ -6,7 +6,8 @@ import { analyzeImage } from '../services/vision.js';
 import { createAlert } from '../services/alerts.js';
 import { extractAndSaveMemories } from '../services/memory.js';
 import { confirmMedication, getPendingReminders } from '../services/medication.js';
-import { handleMedicationFlow } from '../services/medicationFlow.js';
+import { handleMedicationFlow, parseTime } from '../services/medicationFlow.js';
+import { classifyIntent } from '../services/intentClassifier.js';
 
 const trialWarningMsg = (name) =>
   `${name}, que bom que você está aqui! 😊 \n\nSó pra te avisar — nossas mensagens gratuitas \nestão quase no fim. Mas não se preocupe, \ncontinuar é muito simples!\n\nMe manda "quero continuar" quando quiser \ne eu te explico tudo 💚`;
@@ -42,7 +43,6 @@ async function processPayload(body) {
   try {
     const data = body?.data;
     if (!data) return;
-
     if (data.key?.fromMe) return;
 
     const rawPhone = data.key?.remoteJid || '';
@@ -80,8 +80,6 @@ async function processPayload(body) {
 
     // ── Onboarding — pede nome na primeira mensagem ─────────────────────────
     if (!user.name || user.name === '__awaiting_name__') {
-
-      // Usuário sem nome — pede o nome
       if (!user.name) {
         await supabase
           .from('cus_users')
@@ -94,10 +92,9 @@ async function processPayload(body) {
         return;
       }
 
-      // Usuário respondeu com o nome
       if (user.name === '__awaiting_name__') {
-        const content = (textContent || '').trim();
-        const nome = content.split(' ')[0];
+        const c = (textContent || '').trim();
+        const nome = c.split(' ')[0];
         const nomeFormatado = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
 
         await supabase
@@ -114,8 +111,6 @@ async function processPayload(body) {
         return;
       }
     }
-
-    // restante do fluxo normal continua abaixo...
 
     // ── Access control ──────────────────────────────────────────────────────
     if (user.status === 'blocked') return;
@@ -165,132 +160,178 @@ async function processPayload(body) {
 
     if (!content) return;
 
-    // ── Medication confirmation detection ───────────────────────────────────
-    const medResult = await confirmMedication(user.id, content);
-    if (medResult.action === 'confirmed') {
-      await sendWhatsAppMessage(phone,
-        `Ótimo, ${user.name}! Anotei aqui que você tomou o ${medResult.medicationName} ✅💊 Cuide-se!`
-      );
-      return;
-    }
-    if (medResult.action === 'missed_pending') {
-      await sendWhatsAppMessage(phone,
-        `Tudo bem, ${user.name}! Pode acontecer 😊 Mas é importante tomar o ${medResult.medicationName}. Você pode pedir pra alguém te ajudar a lembrar? Quando tomar, me avisa que eu fico na torcida! 💚`
-      );
-      return;
-    }
-    if (medResult.action === 'missed_notified') {
-      await sendWhatsAppMessage(phone,
-        `Que bom que você avisou! 💚 Anotei aqui. Espero que o ${medResult.medicationName} seja tomado logo. Cuide-se!`
-      );
-      return;
-    }
+    // ── Intent classification (uma única vez por mensagem) ──────────────────
+    const intent = await classifyIntent(user, content);
+    console.log('[intent]', intent, '|', content.slice(0, 50));
 
-    // ── Medication reminder flow (conversational) ───────────────────────────
-    const medResponse = await handleMedicationFlow(user, content);
-    if (medResponse) {
-      await supabase.from('msg_conversations').insert({
-        user_id: user.id,
-        role: 'user',
-        content,
-        media_type: 'text',
-      });
-      await supabase.from('msg_conversations').insert({
-        user_id: user.id,
-        role: 'assistant',
-        content: medResponse,
-        media_type: 'text',
-        sentiment: 'happy',
-        flagged: false,
-      });
-      await sendWhatsAppMessage(phone, medResponse);
-      return;
-    }
-
-    // ── Save user message ───────────────────────────────────────────────────
-    const { error: msgErr } = await supabase
-      .from('msg_conversations')
-      .insert({
-        user_id: user.id,
-        role: 'user',
-        content,
-        media_type: mediaType,
-      })
-      .select()
-      .single();
-    if (msgErr) console.error('[evolution] save user msg', msgErr);
-
-    // ── Pending medication reminders injection ──────────────────────────────
-    const pendingMeds = await getPendingReminders(user.id);
-    const pendingMedsHint = pendingMeds.length > 0 && Math.random() > 0.5
-      ? `\n\nLEMBRETE PENDENTE: ${user.name} esqueceu de tomar ${pendingMeds.join(', ')}. Mencione naturalmente UMA VEZ no meio da conversa, com carinho e sem pressão. Exemplo: 'Ah, e o ${pendingMeds[0]}? Já conseguiu tomar?'`
-      : null;
-
-    // ── LLM processing ──────────────────────────────────────────────────────
-    const { cleanText, sentiment, flagged, flagReason } =
-      await processConversation(user, content, pendingMedsHint);
-
-    // ── Save assistant message ──────────────────────────────────────────────
-    const { data: asstMsg, error: asstErr } = await supabase
-      .from('msg_conversations')
-      .insert({
-        user_id: user.id,
-        role: 'assistant',
-        content: cleanText,
-        media_type: 'text',
-        sentiment,
-        flagged,
-        flag_reason: flagReason || null,
-      })
-      .select()
-      .single();
-    if (asstErr) console.error('[evolution] save assistant msg', asstErr);
-
-    // ── Memory extraction (background, non-blocking) ────────────────────────
-    supabase
-      .from('msg_conversations')
-      .select('role, content')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(8)
-      .then(({ data: recent }) => {
-        const recentMessages = (recent || []).reverse().map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
-        return extractAndSaveMemories(user.id, recentMessages);
-      })
-      .catch((err) => console.error('[memory] erro extração:', err.message));
-
-    // ── Alert ───────────────────────────────────────────────────────────────
-    if (flagged) {
-      try {
-        await createAlert(user.id, asstMsg?.id, flagReason);
-      } catch (err) {
-        console.error('[evolution] createAlert failed', err);
+    // 1. Fluxo de lembrete em andamento + LEMBRETE → continua o flow
+    if (user.med_flow && intent === 'LEMBRETE') {
+      const response = await handleMedicationFlow(user, content);
+      if (response) {
+        await saveAndSend(user, phone, content, response);
+        return;
       }
     }
 
-    // ── Reply ───────────────────────────────────────────────────────────────
-    console.log('[reply] audio_mode:', user.audio_mode, '| elevenlabs key:', process.env.ELEVENLABS_API_KEY ? 'presente' : 'AUSENTE');
-    if (user.audio_mode) {
-      try {
-        const audioBuffer = await generateAudio(cleanText);
-        if (audioBuffer) {
-          await sendWhatsAppAudio(phone, audioBuffer);
-          return;
-        }
-      } catch (err) {
-        console.error('[evolution] generateAudio failed, falling back to text', err);
+    // 2. LEMBRETE sem fluxo ativo → inicia
+    if (intent === 'LEMBRETE' && !user.med_flow) {
+      const response = await startMedicationFlow(user, content);
+      await saveAndSend(user, phone, content, response);
+      return;
+    }
+
+    // 3. CONFIRMACAO → processa confirmação
+    if (intent === 'CONFIRMACAO') {
+      const result = await confirmMedication(user.id, content, intent);
+      if (result.action) {
+        const response = buildConfirmationResponse(result, user.name);
+        await saveAndSend(user, phone, content, response);
+        return;
       }
     }
 
-    const delayMs = humanDelay(cleanText.length);
-    await sendTypingIndicator(phone, delayMs);
-    await sendWhatsAppMessage(phone, cleanText);
+    // 4. CONVERSA com fluxo pendente → cancela silenciosamente
+    if (user.med_flow && intent === 'CONVERSA') {
+      await supabase.from('cus_users').update({ med_flow: null }).eq('id', user.id);
+      user = { ...user, med_flow: null };
+    }
+
+    // 5. Fluxo normal do LLM
+    await processNormalConversation(user, phone, content, mediaType);
   } catch (err) {
     console.error('[webhook] erro:', err.message, err.stack);
   }
+}
+
+async function startMedicationFlow(user, content) {
+  const supabase = getSupabase();
+  const time = parseTime(content);
+  const name = extractMedNameFromContent(content);
+
+  if (time) {
+    const flow = { step: 'awaiting_days', name, times: [time] };
+    await supabase.from('cus_users').update({ med_flow: flow }).eq('id', user.id);
+    return 'É todo dia ou só alguns dias da semana? 😊';
+  }
+
+  const flow = { step: 'awaiting_time', name };
+  await supabase.from('cus_users').update({ med_flow: flow }).eq('id', user.id);
+  return 'Claro! 💊 Que horas você toma?';
+}
+
+function extractMedNameFromContent(text) {
+  const t = (text || '').toLowerCase().trim();
+  const m = t.match(/(remédio da pressão|remedio da pressao|remédio do coração|remedio do coracao|remédio do diabetes|remedio do diabetes|remédio da diabetes|remedio da diabetes|remedinho|remédio|remedio|comprimido|cápsula|capsula|insulina|medicamento)/);
+  return m ? m[1] : 'seu remédio';
+}
+
+function buildConfirmationResponse(result, userName) {
+  if (result.action === 'confirmed') {
+    return `Ótimo, ${userName}! Anotei que você tomou o ${result.medicationName} ✅💊`;
+  }
+  if (result.action === 'missed_pending') {
+    return 'Tudo bem! Quando tomar me avisa 💚';
+  }
+  if (result.action === 'missed_notified') {
+    return 'Que bom que avisou! Anotei aqui 💚';
+  }
+  return '';
+}
+
+async function saveAndSend(user, phone, userContent, botResponse) {
+  const supabase = getSupabase();
+  await supabase.from('msg_conversations').insert({
+    user_id: user.id,
+    role: 'user',
+    content: userContent,
+    media_type: 'text',
+  });
+  await supabase.from('msg_conversations').insert({
+    user_id: user.id,
+    role: 'assistant',
+    content: botResponse,
+    media_type: 'text',
+    sentiment: 'happy',
+    flagged: false,
+  });
+  await sendWhatsAppMessage(phone, botResponse);
+}
+
+async function processNormalConversation(user, phone, content, mediaType) {
+  const supabase = getSupabase();
+
+  const { error: msgErr } = await supabase
+    .from('msg_conversations')
+    .insert({
+      user_id: user.id,
+      role: 'user',
+      content,
+      media_type: mediaType,
+    });
+  if (msgErr) console.error('[evolution] save user msg', msgErr);
+
+  const pendingMeds = await getPendingReminders(user.id);
+  const pendingMedsHint = pendingMeds.length > 0 && Math.random() > 0.5
+    ? `\n\nLEMBRETE PENDENTE: ${user.name} esqueceu de tomar ${pendingMeds.join(', ')}. Mencione naturalmente UMA VEZ no meio da conversa, com carinho e sem pressão. Exemplo: 'Ah, e o ${pendingMeds[0]}? Já conseguiu tomar?'`
+    : null;
+
+  const { cleanText, sentiment, flagged, flagReason } =
+    await processConversation(user, content, pendingMedsHint);
+
+  const { data: asstMsg, error: asstErr } = await supabase
+    .from('msg_conversations')
+    .insert({
+      user_id: user.id,
+      role: 'assistant',
+      content: cleanText,
+      media_type: 'text',
+      sentiment,
+      flagged,
+      flag_reason: flagReason || null,
+    })
+    .select()
+    .single();
+  if (asstErr) console.error('[evolution] save assistant msg', asstErr);
+
+  supabase
+    .from('msg_conversations')
+    .select('role, content')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(8)
+    .then(({ data: recent }) => {
+      const recentMessages = (recent || []).reverse().map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      return extractAndSaveMemories(user.id, recentMessages);
+    })
+    .catch((err) => console.error('[memory] erro extração:', err.message));
+
+  if (flagged) {
+    try {
+      await createAlert(user.id, asstMsg?.id, flagReason);
+    } catch (err) {
+      console.error('[evolution] createAlert failed', err);
+    }
+  }
+
+  console.log('[reply] audio_mode:', user.audio_mode, '| elevenlabs key:', process.env.ELEVENLABS_API_KEY ? 'presente' : 'AUSENTE');
+  if (user.audio_mode) {
+    try {
+      const audioBuffer = await generateAudio(cleanText);
+      if (audioBuffer) {
+        await sendWhatsAppAudio(phone, audioBuffer);
+        return;
+      }
+    } catch (err) {
+      console.error('[evolution] generateAudio failed, falling back to text', err);
+    }
+  }
+
+  const delayMs = humanDelay(cleanText.length);
+  await sendTypingIndicator(phone, delayMs);
+  await sendWhatsAppMessage(phone, cleanText);
 }
 
 function humanDelay(textLength) {

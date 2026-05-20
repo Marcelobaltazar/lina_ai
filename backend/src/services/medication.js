@@ -1,5 +1,9 @@
 import axios from 'axios';
+import OpenAI from 'openai';
 import getSupabase from '../lib/supabase.js';
+
+let _openai = null;
+const getOpenAI = () => (_openai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
 const REMINDER_MSG = (medicationName, userName) =>
   `💊 Hora do remédio! Está na hora de tomar ${medicationName}, ${userName}! Já tomou? Me responde aqui 😊`;
@@ -137,16 +141,34 @@ export async function markIgnoredReminders() {
   }
 }
 
-const CONFIRM_WORDS   = ['tomei', 'já tomei', 'tomar', 'tomado', 'bebi', 'já bebi'];
-const FORGOT_WORDS    = ['esqueci', 'esqueceu', 'não tomei', 'nao tomei'];
-const NOTIFIED_WORDS  = ['falei', 'avisei', 'contei', 'já falei'];
-const PERSON_WORDS    = ['filho', 'filha', 'médico', 'medico', 'cuidador', 'enfermeira'];
+async function classifyConfirmationType(content) {
+  try {
+    const response = await getOpenAI().chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 10,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `O usuário disse: '${content}'\nSobre tomar um remédio, classifique:\nTOMOU — confirmou que tomou\nESQUECEU — disse que esqueceu mas não avisou ninguém\nAVISOU — disse que esqueceu mas avisou alguém (filho, médico, etc)\nResponda apenas uma palavra.`,
+        },
+      ],
+    });
+    const raw = (response.choices?.[0]?.message?.content || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+    if (raw === 'TOMOU' || raw === 'ESQUECEU' || raw === 'AVISOU') return raw;
+    return null;
+  } catch (err) {
+    console.error('[medication] classifyConfirmationType', err.message);
+    return null;
+  }
+}
 
-export async function confirmMedication(userId, messageContent) {
+export async function confirmMedication(userId, messageContent, intent) {
+  if (intent !== 'CONFIRMACAO') return { action: null };
+
   const supabase = getSupabase();
   try {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    const msg = (messageContent || '').toLowerCase();
 
     const { data: log } = await supabase
       .from('med_medication_logs')
@@ -161,13 +183,9 @@ export async function confirmMedication(userId, messageContent) {
     if (!log) return { action: null };
 
     const medicationName = log.med_medications?.name || 'remédio';
+    const type = await classifyConfirmationType(messageContent);
 
-    const isConfirm  = CONFIRM_WORDS.some((w) => msg.includes(w));
-    const isForgot   = FORGOT_WORDS.some((w) => msg.includes(w));
-    const isNotified = NOTIFIED_WORDS.some((w) => msg.includes(w));
-    const hasPerson  = PERSON_WORDS.some((w) => msg.includes(w));
-
-    if (isConfirm) {
+    if (type === 'TOMOU') {
       await supabase
         .from('med_medication_logs')
         .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
@@ -175,16 +193,15 @@ export async function confirmMedication(userId, messageContent) {
       return { action: 'confirmed', medicationName };
     }
 
-    if (isForgot && isNotified && hasPerson) {
-      const notifiedPerson = PERSON_WORDS.find((w) => msg.includes(w)) || null;
+    if (type === 'AVISOU') {
       await supabase
         .from('med_medication_logs')
-        .update({ status: 'missed_notified', notified_person: notifiedPerson })
+        .update({ status: 'missed_notified' })
         .eq('id', log.id);
-      return { action: 'missed_notified', medicationName, notifiedPerson };
+      return { action: 'missed_notified', medicationName };
     }
 
-    if (isForgot) {
+    if (type === 'ESQUECEU') {
       await supabase
         .from('med_medication_logs')
         .update({ status: 'missed_pending' })
