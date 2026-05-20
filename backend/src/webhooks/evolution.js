@@ -8,10 +8,18 @@ import { extractAndSaveMemories } from '../services/memory.js';
 import { confirmMedication, getPendingReminders } from '../services/medication.js';
 
 const trialWarningMsg = (name) =>
-  `${name}, preciso te contar uma coisa! 😊\n\nSou uma IA criada pela ElderlyAgent pra fazer companhia, conversar com você e lembrar seus medicamentos, mas tenho um custo de operação pra funcionar. \n\nNas próximas 2 mensagens meus créditos acabam. Pra continuar nossa conversa sem interrupção, você ou alguém da sua família pode me recarregar rapidinho:\n\n👉 www.elderlyagent.com\n\nÉ simples e rápido. Até lá, estou aqui! 💚`;
+  `${name}, que bom que você está aqui! 😊 \n\nSó pra te avisar — nossas mensagens gratuitas \nestão quase no fim. Mas não se preocupe, \ncontinuar é muito simples!\n\nMe manda "quero continuar" quando quiser \ne eu te explico tudo 💚`;
 
-const paywallMsg = (name) =>
-  `${name}, por hoje preciso pausar nossa conversa. 😔\n\nMeus créditos acabaram! Mas a gente se fala de novo assim que você ou um familiar fizer a recarga:\n\n👉 www.elderlyagent.com\n\nQualquer dúvida, é só pedir ajuda pra quem você confia. Até logo! 💚`;
+const paywallWantsToPayMsg = (name) =>
+  `Que ótimo, ${name}! Fico feliz que quer continuar! 🎉\n\nO plano mensal é R$29,90 — uma vez por mês.\nPode ser Pix ou cartão, do jeito que for melhor pra você!\n\nJá estou gerando seu link de pagamento... \nPode demorar um minutinho mas logo te mando \ntudo certinho aqui mesmo 😊💚`;
+
+const paywallBlockMsg = (name) =>
+  `${name}, adorei conversar com você! 😊\n\nMinhas mensagens gratuitas acabaram por hoje.\nPara continuar é só me falar "quero continuar" \nque eu te ajudo com tudo! 💚`;
+
+const PAYMENT_INTENT_KEYWORDS = [
+  'quero continuar', 'quero pagar', 'como pago',
+  'como faço', 'quero assinar', 'continuar',
+];
 
 export async function evolutionWebhook(req, res) {
   res.sendStatus(200);
@@ -112,7 +120,9 @@ async function processPayload(body) {
     if (user.status === 'blocked') return;
 
     if (user.status === 'trial' && user.free_messages_used >= 15) {
-      await sendWhatsAppMessage(phone, paywallMsg(user.name));
+      const msgLower = (textContent || '').toLowerCase();
+      const wantsToPay = PAYMENT_INTENT_KEYWORDS.some((kw) => msgLower.includes(kw));
+      await sendWhatsAppMessage(phone, wantsToPay ? paywallWantsToPayMsg(user.name) : paywallBlockMsg(user.name));
       return;
     }
 
