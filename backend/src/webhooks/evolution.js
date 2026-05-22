@@ -372,6 +372,16 @@ async function processNormalConversation(user, phone, content, contentForLLM, me
   }
 
   console.log('[reply] audio_mode:', user.audio_mode, '| elevenlabs key:', process.env.ELEVENLABS_API_KEY ? 'presente' : 'AUSENTE');
+
+  // Delay humanizado — simula tempo de digitação/gravação
+  const textLength = cleanText?.length || 100;
+  const baseDelay = Math.min(textLength * 40, 8000);
+  const randomExtra = Math.floor(Math.random() * 4000);
+  const totalDelay = Math.max(10000, baseDelay + randomExtra);
+
+  console.log('[delay] aguardando', Math.round(totalDelay / 1000), 'segundos antes de responder');
+  await sendTypingIndicator(phone, totalDelay);
+
   if (user.audio_mode) {
     try {
       const audioBuffer = await generateAudio(cleanText);
@@ -384,15 +394,7 @@ async function processNormalConversation(user, phone, content, contentForLLM, me
     }
   }
 
-  const delayMs = humanDelay(cleanText.length);
-  await sendTypingIndicator(phone, delayMs);
   await sendWhatsAppMessage(phone, cleanText);
-}
-
-function humanDelay(textLength) {
-  const base = Math.min(textLength * 35, 6000);
-  const variation = Math.random() * 2000;
-  return Math.max(1500, base + variation);
 }
 
 async function sendTypingIndicator(phone, delayMs) {
