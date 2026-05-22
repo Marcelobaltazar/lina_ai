@@ -3,14 +3,30 @@ import crypto from 'crypto';
 import axios from 'axios';
 import OpenAI, { toFile } from 'openai';
 
-function decryptWhatsAppMedia(encryptedBuffer, mediaKeyBase64) {
-  const mediaKey = Buffer.from(mediaKeyBase64, 'base64');
-  if (mediaKey.length !== 32) {
-    throw new Error(`mediaKey inválida, esperava 32 bytes, recebeu ${mediaKey.length}`);
+function decryptWhatsAppMedia(encryptedBuffer, mediaKey) {
+  let keyBuffer;
+
+  if (typeof mediaKey === 'string') {
+    keyBuffer = Buffer.from(mediaKey, 'base64');
+  } else if (Buffer.isBuffer(mediaKey)) {
+    keyBuffer = mediaKey;
+  } else if (mediaKey instanceof Uint8Array) {
+    keyBuffer = Buffer.from(mediaKey);
+  } else if (typeof mediaKey === 'object' && mediaKey !== null) {
+    const bytes = Object.values(mediaKey);
+    keyBuffer = Buffer.from(bytes);
+  } else {
+    throw new Error('mediaKey em formato inválido: ' + typeof mediaKey);
+  }
+
+  console.log('[audio] mediaKey tamanho:', keyBuffer.length, 'bytes');
+
+  if (keyBuffer.length !== 32) {
+    throw new Error(`mediaKey inválida, esperava 32 bytes, recebeu ${keyBuffer.length}`);
   }
 
   const derived = Buffer.from(
-    crypto.hkdfSync('sha256', mediaKey, Buffer.alloc(0), Buffer.from('WhatsApp Audio Keys'), 112)
+    crypto.hkdfSync('sha256', keyBuffer, Buffer.alloc(0), Buffer.from('WhatsApp Audio Keys'), 112)
   );
   const iv = derived.subarray(0, 16);
   const cipherKey = derived.subarray(16, 48);

@@ -165,17 +165,11 @@ async function processPayload(body) {
             content: '[áudio não transcrito]',
             media_type: 'audio',
           });
-          await sendWhatsAppMessage(phone,
-            'Recebi seu áudio mas tive dificuldade em ouvir 😊 Pode repetir ou me mandar por texto?'
-          );
           return;
         }
         content = transcricao;
       } catch (err) {
         console.error('[evolution] transcribeAudio failed', err);
-        await sendWhatsAppMessage(phone,
-          'Recebi seu áudio mas tive dificuldade em ouvir 😊 Pode repetir ou me mandar por texto?'
-        );
         return;
       }
     } else if (messageType === 'imageMessage' && mediaUrl) {
