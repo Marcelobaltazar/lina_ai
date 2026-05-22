@@ -6,25 +6,60 @@ let _client = null;
 const getClient = () => (_client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY }));
 
 export async function transcribeAudio(data) {
-  const tmpPath = '/tmp/audio_temp.ogg';
+  const tmpPath = `/tmp/audio_lina_${Date.now()}.ogg`;
   try {
-    // Evolution API returns encrypted audio at the message URL.
-    // The correct way to get the decrypted media is via getBase64FromMediaMessage.
-    const evolutionUrl = `${process.env.EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/${process.env.EVOLUTION_INSTANCE}`;
-    const { data: mediaData } = await axios.post(
-      evolutionUrl,
-      { message: { key: data.key, message: data.message }, convertToMp4: false },
-      { headers: { apikey: process.env.EVOLUTION_API_KEY } },
-    );
+    const mediaUrl = data?.message?.audioMessage?.url;
+    console.log('[audio] iniciando transcrição, url:', mediaUrl?.slice(0, 80));
 
-    const base64 = mediaData?.base64;
-    if (!base64) throw new Error('base64 vazio na resposta da Evolution API');
+    let buffer = null;
 
-    console.log('[audio] base64 recebido, tamanho:', base64.length);
+    // Tentativa 1: URL direta com apikey
+    if (mediaUrl?.startsWith('http')) {
+      try {
+        console.log('[audio] tentativa 1: download com apikey...');
+        const res = await axios.get(mediaUrl, {
+          responseType: 'arraybuffer',
+          headers: { apikey: process.env.EVOLUTION_API_KEY },
+        });
+        buffer = res.data;
+        console.log('[audio] tentativa 1 ok, tamanho:', buffer.byteLength, 'bytes');
+      } catch (e) {
+        console.log('[audio] tentativa 1 falhou:', e.message);
+      }
+    }
 
-    const buffer = Buffer.from(base64, 'base64');
-    console.log('[audio] primeiros bytes:', buffer.slice(0, 16).toString('hex'));
-    fs.writeFileSync(tmpPath, buffer);
+    // Tentativa 2: URL direta sem headers
+    if (!buffer && mediaUrl?.startsWith('http')) {
+      try {
+        console.log('[audio] tentativa 2: download sem headers...');
+        const res = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+        buffer = res.data;
+        console.log('[audio] tentativa 2 ok, tamanho:', buffer.byteLength, 'bytes');
+      } catch (e) {
+        console.log('[audio] tentativa 2 falhou:', e.message);
+      }
+    }
+
+    // Tentativa 3: getBase64FromMediaMessage via Evolution API
+    if (!buffer) {
+      console.log('[audio] tentativa 3: getBase64FromMediaMessage...');
+      const evolutionUrl = `${process.env.EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/${process.env.EVOLUTION_INSTANCE}`;
+      const { data: mediaData } = await axios.post(
+        evolutionUrl,
+        { message: { key: data.key, message: data.message }, convertToMp4: false },
+        { headers: { apikey: process.env.EVOLUTION_API_KEY } },
+      );
+      const base64 = mediaData?.base64;
+      if (!base64) throw new Error('base64 vazio na resposta da Evolution API');
+      buffer = Buffer.from(base64, 'base64');
+      console.log('[audio] tentativa 3 ok, tamanho:', buffer.byteLength, 'bytes');
+    }
+
+    console.log('[audio] arquivo baixado, tamanho:', buffer.byteLength, 'bytes');
+    console.log('[audio] primeiros bytes (hex):', Buffer.from(buffer).slice(0, 8).toString('hex'));
+
+    fs.writeFileSync(tmpPath, Buffer.from(buffer));
+    console.log('[audio] arquivo salvo em:', tmpPath);
 
     const file = await toFile(fs.createReadStream(tmpPath), 'audio.ogg', { type: 'audio/ogg' });
     const result = await getClient().audio.transcriptions.create({
@@ -33,7 +68,15 @@ export async function transcribeAudio(data) {
       language: 'pt',
     });
 
-    return result.text;
+    const text = result.text?.trim() || '';
+    console.log('[audio] transcrição obtida:', text.slice(0, 100));
+
+    if (!text) {
+      console.log('[audio] transcrição vazia');
+      return null;
+    }
+
+    return text;
   } catch (err) {
     console.error('[audio] transcribeAudio erro:', err.message);
     return null;

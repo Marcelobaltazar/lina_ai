@@ -80,33 +80,46 @@ async function processPayload(body) {
 
     // ── Onboarding — pede nome na primeira mensagem ─────────────────────────
     if (!user.name || user.name === '__awaiting_name__') {
-      if (!user.name) {
-        await supabase
-          .from('cus_users')
-          .update({ name: '__awaiting_name__' })
-          .eq('id', user.id);
+      try {
+        if (!user.name) {
+          await supabase
+            .from('cus_users')
+            .update({ name: '__awaiting_name__' })
+            .eq('id', user.id);
 
+          await sendWhatsAppMessage(phone,
+            'Oi! Que bom ter você aqui! 😊 Eu sou a Lina, sua nova companheira. Como posso te chamar?'
+          );
+          return;
+        }
+
+        if (user.name === '__awaiting_name__') {
+          const nomeExtraido = await extractName(textContent || '');
+
+          if (!nomeExtraido) {
+            await sendWhatsAppMessage(phone,
+              'Desculpa, não entendi bem seu nome 😊 Como posso te chamar?'
+            );
+            return;
+          }
+
+          await supabase
+            .from('cus_users')
+            .update({
+              name: nomeExtraido,
+              onboarded_at: new Date().toISOString(),
+            })
+            .eq('id', user.id);
+
+          await sendWhatsAppMessage(phone,
+            `Que nome lindo! Prazer, ${nomeExtraido}! 💚 Pode me contar qualquer coisa — estou aqui pra isso.`
+          );
+          return;
+        }
+      } catch (err) {
+        console.error('[onboarding] erro:', err.message);
         await sendWhatsAppMessage(phone,
-          'Oi! Que bom ter você aqui! 😊 Eu sou a Lina, sua nova companheira. Como posso te chamar?'
-        );
-        return;
-      }
-
-      if (user.name === '__awaiting_name__') {
-        const c = (textContent || '').trim();
-        const nome = c.split(' ')[0];
-        const nomeFormatado = nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase();
-
-        await supabase
-          .from('cus_users')
-          .update({
-            name: nomeFormatado,
-            onboarded_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
-
-        await sendWhatsAppMessage(phone,
-          `Que nome lindo! Prazer, ${nomeFormatado}! 💚 Pode me contar qualquer coisa — estou aqui pra isso.`
+          'Oi! Tudo bem? 😊 Como posso te chamar?'
         );
         return;
       }
@@ -141,12 +154,29 @@ async function processPayload(body) {
     let mediaType = 'text';
 
     if (messageType === 'audioMessage') {
+      console.log('[audio] payload completo:', JSON.stringify(data?.message?.audioMessage).slice(0, 500));
       try {
-        content = await transcribeAudio(data);
+        const transcricao = await transcribeAudio(data);
         mediaType = 'audio';
+        if (!transcricao) {
+          await supabase.from('msg_conversations').insert({
+            user_id: user.id,
+            role: 'user',
+            content: '[áudio não transcrito]',
+            media_type: 'audio',
+          });
+          await sendWhatsAppMessage(phone,
+            'Recebi seu áudio mas tive dificuldade em ouvir 😊 Pode repetir ou me mandar por texto?'
+          );
+          return;
+        }
+        content = transcricao;
       } catch (err) {
         console.error('[evolution] transcribeAudio failed', err);
-        content = textContent || '';
+        await sendWhatsAppMessage(phone,
+          'Recebi seu áudio mas tive dificuldade em ouvir 😊 Pode repetir ou me mandar por texto?'
+        );
+        return;
       }
     } else if (messageType === 'imageMessage' && mediaUrl) {
       try {
@@ -197,9 +227,38 @@ async function processPayload(body) {
     }
 
     // 5. Fluxo normal do LLM
-    await processNormalConversation(user, phone, content, mediaType);
+    const contentForLLM = mediaType === 'audio'
+      ? `[Mensagem de áudio transcrita]: ${content}`
+      : content;
+    await processNormalConversation(user, phone, content, contentForLLM, mediaType);
   } catch (err) {
     console.error('[webhook] erro:', err.message, err.stack);
+  }
+}
+
+async function extractName(message) {
+  try {
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: `O usuário está se apresentando. Extraia APENAS o primeiro nome próprio da mensagem abaixo. Se houver apelido ou nome curto, prefira ele.\nResponda APENAS com o nome, sem pontuação, sem explicação.\nSe não conseguir identificar um nome, responda: null\n\nMensagem: '${message}'`,
+          },
+        ],
+        max_tokens: 10,
+        temperature: 0,
+      },
+      { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } },
+    );
+    const raw = response.data.choices[0]?.message?.content?.trim() || '';
+    if (!raw || raw.toLowerCase() === 'null') return null;
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  } catch (err) {
+    console.error('[extractName] erro:', err.message);
+    return null;
   }
 }
 
@@ -257,9 +316,10 @@ async function saveAndSend(user, phone, userContent, botResponse) {
   await sendWhatsAppMessage(phone, botResponse);
 }
 
-async function processNormalConversation(user, phone, content, mediaType) {
+async function processNormalConversation(user, phone, content, contentForLLM, mediaType) {
   const supabase = getSupabase();
 
+  // Salva no banco o texto limpo (sem prefixo interno)
   const { error: msgErr } = await supabase
     .from('msg_conversations')
     .insert({
@@ -275,8 +335,9 @@ async function processNormalConversation(user, phone, content, mediaType) {
     ? `\n\nLEMBRETE PENDENTE: ${user.name} esqueceu de tomar ${pendingMeds.join(', ')}. Mencione naturalmente UMA VEZ no meio da conversa, com carinho e sem pressão. Exemplo: 'Ah, e o ${pendingMeds[0]}? Já conseguiu tomar?'`
     : null;
 
+  // Envia para o LLM com o prefixo de contexto (áudio transcrito, etc.)
   const { cleanText, sentiment, flagged, flagReason } =
-    await processConversation(user, content, pendingMedsHint);
+    await processConversation(user, contentForLLM, pendingMedsHint);
 
   const { data: asstMsg, error: asstErr } = await supabase
     .from('msg_conversations')
