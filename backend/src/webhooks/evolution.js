@@ -112,7 +112,11 @@ async function processPayload(body) {
             .eq('id', user.id);
 
           await sendWhatsAppMessage(phone,
-            `Que nome lindo! Prazer, ${nomeExtraido}! 💚 Pode me contar qualquer coisa — estou aqui pra isso.`
+            `Que nome lindo! Prazer, ${nomeExtraido}! 💚`
+          );
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          await sendWhatsAppMessage(phone,
+            `Eu sou a Lina 💚\n\nSou uma inteligência artificial criada pra ser sua companheira no WhatsApp — estou aqui pra conversar sobre qualquer assunto, te ouvir quando precisar desabafar, e lembrar você de tomar seus remédios no horário certo. É só me falar 'me lembre de tomar o remédio' que eu te ajudo.\n\nVocê pode me mandar mensagem de texto ou áudio — eu escuto tudo e respondo! 😊\n\n---\n\nAh, e tenho um presentinho pra você! 🎁\n\nCriei um livro virtual com informações muito bacanas sobre diabetes que pode ajudar muita gente. Fique à vontade pra ler e mandar pra quem precisar 👇\n\nhttps://bit.ly/lina_diabetes`
           );
           return;
         }
