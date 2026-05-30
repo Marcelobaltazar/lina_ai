@@ -23,6 +23,34 @@ const PAYMENT_INTENT_KEYWORDS = [
   'como faço', 'quero assinar', 'continuar',
 ];
 
+// ── Delay humanizado ───────────────────────────────────────────────────────
+// Simula o tempo de digitação. Mínimo 2s, máximo 10s.
+function humanDelay(text) {
+  const base = Math.min((text?.length || 0) * 35, 6000);
+  const variation = Math.random() * 2000;
+  return Math.min(10000, Math.max(2000, base + variation));
+}
+
+// ── Mensagens hardcoded do onboarding ──────────────────────────────────────
+const ONBOARDING_WELCOME = 'Oi! Eu sou a Lina 💚 Como é seu nome?';
+
+const onboardingGuide = (name) =>
+  `Que nome lindo, ${name}! 😊\n\nAqui está seu guia do pré-diabético:\n👉 https://bit.ly/lina_diabetes`;
+
+const ONBOARDING_DIAGNOSIS_QUESTION =
+  'Posso te perguntar uma coisa?\n\nVocê foi diagnosticada recentemente ou já faz acompanhamento há um tempo?';
+
+const ONBOARDING_HELP_INTRO =
+  'Entendo! Além do guia, posso te ajudar no dia a dia também.\n\nTe lembro de tomar seus remédios, de beber água, pesquiso na internet as notícias do dia e a gente pode conversar sempre que quiser. 🥰';
+
+const ONBOARDING_TRY_INVITE =
+  'Quer experimentar? É só falar "me lembre de tomar água"\n\nQuer que eu comece te lembrando de beber água hoje?';
+
+const ONBOARDING_WATER_CONFIRM = 'Maravilha! Vou começar hoje mesmo 💧';
+
+const ONBOARDING_PAYWALL =
+  'Eu sou uma Inteligência artificial criada para adultos 50+. A versão gratuita inclui o guia e lembretes básicos.\n\nPara lembretes de remédios, conversa todo dia e relatório semanal é só R$19,90/mês.\n\nQuer continuar? Eu te passo o Pix 💚';
+
 export async function evolutionWebhook(req, res) {
   res.sendStatus(200);
   try {
@@ -78,27 +106,34 @@ async function processPayload(body) {
       user = created;
     }
 
-    // ── Onboarding — pede nome na primeira mensagem ─────────────────────────
-    if (!user.name || user.name === '__awaiting_name__') {
+    // ── Onboarding — fluxo em etapas ────────────────────────────────────────
+    // Estados (onboarding_step):
+    //   null / sem nome  → ETAPA 1: chegada, pede o nome
+    //   awaiting_name    → recebeu o nome → ETAPA 2 (guia + pergunta diagnóstico)
+    //   awaiting_diagnosis → recebeu resposta → ETAPA 3 (ajuda + convite p/ experimentar)
+    //   awaiting_try     → recebeu resposta → ETAPA 4 (confirma água + paywall)
+    //   done             → onboarding concluído, segue fluxo normal do LLM
+    if (!user.name || (user.onboarding_step && user.onboarding_step !== 'done')) {
       try {
-        if (!user.name) {
+        // ETAPA 1 — Chegada: ainda não temos nome nem etapa registrada
+        if (!user.name && !user.onboarding_step) {
           await supabase
             .from('cus_users')
-            .update({ name: '__awaiting_name__' })
+            .update({ onboarding_step: 'awaiting_name' })
             .eq('id', user.id);
 
-          await sendWhatsAppMessage(phone,
-            'Oi! Que bom ter você aqui! 😊 Eu sou a Lina, sua nova companheira. Como posso te chamar?'
-          );
+          await sendHardcoded(user.id, phone, ONBOARDING_WELCOME);
           return;
         }
 
-        if (user.name === '__awaiting_name__') {
+        // ETAPA 2 — Recebeu o nome
+        if (user.onboarding_step === 'awaiting_name') {
+          await saveUserMessage(user.id, textContent || '');
           const nomeExtraido = await extractName(textContent || '');
 
           if (!nomeExtraido) {
-            await sendWhatsAppMessage(phone,
-              'Desculpa, não entendi bem seu nome 😊 Como posso te chamar?'
+            await sendHardcoded(user.id, phone,
+              'Desculpa, não entendi bem seu nome 😊 Como você gostaria de ser chamada?'
             );
             return;
           }
@@ -107,31 +142,41 @@ async function processPayload(body) {
             .from('cus_users')
             .update({
               name: nomeExtraido,
+              onboarding_step: 'awaiting_diagnosis',
               onboarded_at: new Date().toISOString(),
             })
             .eq('id', user.id);
 
-          await sendWhatsAppMessage(phone,
-            `Que nome lindo! Prazer, ${nomeExtraido}! 💚`
-          );
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          await sendWhatsAppMessage(phone,
-            `Eu sou a Lina 💚\n\nSou uma inteligência artificial criada pra ser sua companheira no WhatsApp — estou aqui pra conversar sobre qualquer assunto, te ouvir quando precisar desabafar, e lembrar você de tomar seus remédios no horário certo. É só me falar 'me lembre de tomar o remédio' que eu te ajudo.\n\nVocê pode me mandar mensagem de texto ou áudio — eu escuto tudo e respondo! 😊\n\n---\n\nAh, e tenho um presentinho pra você! 🎁\n\nCriei um livro virtual com informações muito bacanas sobre diabetes que pode ajudar muita gente. Fique à vontade pra ler e mandar pra quem precisar 👇\n\nhttps://bit.ly/lina_diabetes`
-          );
-          await supabase.from('msg_conversations').insert({
-            user_id: user.id,
-            role: 'user',
-            content: textContent,
-            media_type: 'text',
-          });
-          await supabase.from('msg_conversations').insert({
-            user_id: user.id,
-            role: 'assistant',
-            content: `Que nome lindo! Prazer, ${nomeExtraido}! 💚\n\nEu sou a Lina 💚\n\nSou uma inteligência artificial criada pra ser sua companheira no WhatsApp — estou aqui pra conversar sobre qualquer assunto, te ouvir quando precisar desabafar, e lembrar você de tomar seus remédios no horário certo. É só me falar 'me lembre de tomar o remédio' que eu te ajudo.\n\nVocê pode me mandar mensagem de texto ou áudio — eu escuto tudo e respondo! 😊\n\n---\n\nAh, e tenho um presentinho pra você! 🎁\n\nCriei um livro virtual com informações muito bacanas sobre diabetes que pode ajudar muita gente. Fique à vontade pra ler e mandar pra quem precisar 👇\n\nhttps://bit.ly/lina_diabetes`,
-            media_type: 'text',
-            sentiment: 'happy',
-            flagged: false,
-          });
+          await sendHardcoded(user.id, phone, onboardingGuide(nomeExtraido));
+          await sendHardcoded(user.id, phone, ONBOARDING_DIAGNOSIS_QUESTION);
+          return;
+        }
+
+        // ETAPA 3 — Recebeu resposta sobre o diagnóstico
+        if (user.onboarding_step === 'awaiting_diagnosis') {
+          await saveUserMessage(user.id, textContent || '[mensagem]');
+
+          await supabase
+            .from('cus_users')
+            .update({ onboarding_step: 'awaiting_try' })
+            .eq('id', user.id);
+
+          await sendHardcoded(user.id, phone, ONBOARDING_HELP_INTRO);
+          await sendHardcoded(user.id, phone, ONBOARDING_TRY_INVITE);
+          return;
+        }
+
+        // ETAPA 4 — Recebeu resposta positiva (monetização)
+        if (user.onboarding_step === 'awaiting_try') {
+          await saveUserMessage(user.id, textContent || '[mensagem]');
+
+          await supabase
+            .from('cus_users')
+            .update({ onboarding_step: 'done' })
+            .eq('id', user.id);
+
+          await sendHardcoded(user.id, phone, ONBOARDING_WATER_CONFIRM);
+          await sendHardcoded(user.id, phone, ONBOARDING_PAYWALL);
           return;
         }
       } catch (err) {
@@ -149,7 +194,7 @@ async function processPayload(body) {
     if (user.status === 'trial' && user.free_messages_used >= 15) {
       const msgLower = (textContent || '').toLowerCase();
       const wantsToPay = PAYMENT_INTENT_KEYWORDS.some((kw) => msgLower.includes(kw));
-      await sendWhatsAppMessage(phone, wantsToPay ? paywallWantsToPayMsg(user.name) : paywallBlockMsg(user.name));
+      await sendHardcoded(user.id, phone, wantsToPay ? paywallWantsToPayMsg(user.name) : paywallBlockMsg(user.name));
       return;
     }
 
@@ -163,7 +208,7 @@ async function processPayload(body) {
       user = { ...user, free_messages_used: nextCount };
 
       if (nextCount === 13) {
-        await sendWhatsAppMessage(phone, trialWarningMsg(user.name));
+        await sendHardcoded(user.id, phone, trialWarningMsg(user.name));
       }
     }
 
@@ -326,6 +371,42 @@ async function saveAndSend(user, phone, userContent, botResponse) {
     flagged: false,
   });
   await sendWhatsAppMessage(phone, botResponse);
+}
+
+// ── Envio de mensagem hardcoded (fora do fluxo do LLM) ──────────────────────
+// Mostra "digitando...", aguarda o delay humanizado, envia e salva no histórico
+// com role 'assistant' para a Lina manter o contexto da conversa.
+async function sendHardcoded(userId, phone, text) {
+  const delayMs = humanDelay(text);
+  await sendTypingIndicator(phone, delayMs);
+  await sendWhatsAppMessage(phone, text);
+
+  try {
+    await getSupabase().from('msg_conversations').insert({
+      user_id: userId,
+      role: 'assistant',
+      content: text,
+      media_type: 'text',
+      sentiment: 'happy',
+      flagged: false,
+    });
+  } catch (err) {
+    console.error('[sendHardcoded] falha ao salvar no histórico:', err.message);
+  }
+}
+
+// Salva uma mensagem recebida do usuário no histórico
+async function saveUserMessage(userId, content) {
+  try {
+    await getSupabase().from('msg_conversations').insert({
+      user_id: userId,
+      role: 'user',
+      content,
+      media_type: 'text',
+    });
+  } catch (err) {
+    console.error('[saveUserMessage] falha ao salvar:', err.message);
+  }
 }
 
 async function processNormalConversation(user, phone, content, contentForLLM, mediaType) {
