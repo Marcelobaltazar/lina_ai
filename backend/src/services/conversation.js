@@ -3,6 +3,19 @@ import { callLLM } from '../llm/router.js';
 import { parseSentiment } from './sentiment.js';
 import { fetchRelevantMemories } from './memory.js';
 import { needsSearch, searchWeb, formatSearchContext } from './search.js';
+import { searchKnowledge } from './knowledge.js';
+
+// Palavras-chave que indicam tema de diabetes/saúde → aciona o RAG
+const HEALTH_KEYWORDS = [
+  'diabetes', 'glicose', 'açúcar', 'acucar', 'insulina', 'carboidrato',
+  'dieta', 'remédio', 'remedio', 'medicamento', 'hemoglobina', 'glicada',
+  'pressão', 'pressao', 'colesterol', 'alimentação', 'alimentacao', 'comer',
+];
+
+function mentionsHealthTopic(text) {
+  const lower = (text || '').toLowerCase();
+  return HEALTH_KEYWORDS.some((kw) => lower.includes(kw));
+}
 
 export async function processConversation(user, content, pendingMedsHint = null) {
   const supabase = getSupabase();
@@ -51,6 +64,24 @@ export async function processConversation(user, content, pendingMedsHint = null)
   }
 
   if (pendingMedsHint) systemPrompt += pendingMedsHint;
+
+  // RAG — conhecimento especializado sobre diabetes/saúde.
+  // Só consulta quando a mensagem menciona o tema; falha silenciosa.
+  if (mentionsHealthTopic(content)) {
+    try {
+      const knowledge = await searchKnowledge(content);
+      if (knowledge) {
+        systemPrompt +=
+          '\n\nCONHECIMENTO ESPECIALIZADO SOBRE DIABETES:\n' +
+          knowledge +
+          '\n\nUse essas informações para responder com precisão. ' +
+          'Você é especialista nesse tema. Seja clara e use linguagem simples para o público 50+.';
+        console.log('[knowledge] contexto de diabetes injetado');
+      }
+    } catch (err) {
+      console.error('[knowledge] RAG falhou, seguindo sem contexto:', err.message);
+    }
+  }
 
   const shouldSearch = await needsSearch(content, llmCfg?.active_provider);
   if (shouldSearch) {
