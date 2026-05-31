@@ -179,7 +179,16 @@ async function processPayload(body) {
     if (user.status === 'trial' && user.free_messages_used >= 15) {
       const msgLower = (textContent || '').toLowerCase();
       const wantsToPay = PAYMENT_INTENT_KEYWORDS.some((kw) => msgLower.includes(kw));
-      await sendHardcoded(user.id, phone, wantsToPay ? paywallWantsToPayMsg(user.name) : paywallBlockMsg(user.name));
+      try {
+        await sendPaymentImage(phone);
+        await saveAssistantMessage(user.id, '[imagem de pagamento enviada]', 'image');
+        await new Promise((r) => setTimeout(r, 2000));
+        await sendHardcoded(user.id, phone, 'Qualquer dúvida é só me chamar aqui. 😊');
+      } catch (err) {
+        // Falha no envio da imagem → cai no texto original do paywall
+        console.error('[paywall] sendPaymentImage falhou, usando texto:', err.message);
+        await sendHardcoded(user.id, phone, wantsToPay ? paywallWantsToPayMsg(user.name) : paywallBlockMsg(user.name));
+      }
       return;
     }
 
@@ -385,18 +394,22 @@ async function sendHardcoded(userId, phone, text) {
   const delayMs = humanDelay(text);
   await sendTypingIndicator(phone, delayMs);
   await sendWhatsAppMessage(phone, text);
+  await saveAssistantMessage(userId, text);
+}
 
+// Salva uma mensagem da Lina no histórico (role 'assistant')
+async function saveAssistantMessage(userId, content, mediaType = 'text') {
   try {
     await getSupabase().from('msg_conversations').insert({
       user_id: userId,
       role: 'assistant',
-      content: text,
-      media_type: 'text',
+      content,
+      media_type: mediaType,
       sentiment: 'happy',
       flagged: false,
     });
   } catch (err) {
-    console.error('[sendHardcoded] falha ao salvar no histórico:', err.message);
+    console.error('[saveAssistantMessage] falha ao salvar:', err.message);
   }
 }
 
@@ -519,6 +532,23 @@ async function sendWhatsAppMessage(phone, text) {
   await axios.post(
     url,
     { number: phone, text },
+    { headers: { apikey: process.env.EVOLUTION_API_KEY } },
+  );
+}
+
+async function sendPaymentImage(phone) {
+  if (!process.env.PAYMENT_IMAGE_URL) {
+    throw new Error('PAYMENT_IMAGE_URL não configurada');
+  }
+  const url = `${process.env.EVOLUTION_API_URL}/message/sendMedia/${process.env.EVOLUTION_INSTANCE}`;
+  await axios.post(
+    url,
+    {
+      number: phone,
+      mediatype: 'image',
+      media: process.env.PAYMENT_IMAGE_URL,
+      caption: 'Para continuar conversando comigo, é só fazer o PIX acima e me mandar o comprovante aqui. 💚',
+    },
     { headers: { apikey: process.env.EVOLUTION_API_KEY } },
   );
 }
