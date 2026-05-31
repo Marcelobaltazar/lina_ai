@@ -176,7 +176,7 @@ async function processPayload(body) {
     // ── Access control ──────────────────────────────────────────────────────
     if (user.status === 'blocked') return;
 
-    if (user.status === 'trial' && user.free_messages_used >= 15) {
+    if (user.status === 'trial' && user.free_messages_used >= 6) {
       const msgLower = (textContent || '').toLowerCase();
       const wantsToPay = PAYMENT_INTENT_KEYWORDS.some((kw) => msgLower.includes(kw));
       try {
@@ -201,7 +201,7 @@ async function processPayload(body) {
 
       user = { ...user, free_messages_used: nextCount };
 
-      if (nextCount === 13) {
+      if (nextCount === 4) {
         await sendHardcoded(user.id, phone, trialWarningMsg(user.name));
       }
     }
